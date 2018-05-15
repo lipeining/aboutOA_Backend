@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  aboutoa:
+    image: "node:8"
+    working_dir: /home/node/app
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./:/home/node/app
+    links:
+      - redis
+      - mysql
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    command: "npm start"
+
+  redis:
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
+    expose:
+      - "6379"
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: "redis-server /usr/local/etc/redis/redis.conf"
+
+  mysql:
+    image: "mysql:5.7"
+    ports:
+      - "3306:3306"
+    restart: "no"
+    expose:
+      - "3306"
+    volumes:
+     - /home/said/aboutOA/datadir:/var/lib/mysql
+     - ./mysql.sql:/usr/local/mysql.sql
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
