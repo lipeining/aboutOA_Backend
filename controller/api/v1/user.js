@@ -1,6 +1,7 @@
-const db = require('../../../models');
+const userService = require('../../../services/user');
 
 module.exports = {
+  makeUsers,
   getUsers,
   getUser,
   grantUser,
@@ -14,13 +15,13 @@ module.exports = {
 async function getUsers(req, res, next) {
   let pageIndex = parseInt(req.query.pageIndex) || 1;
   let pageSize  = parseInt(req.query.pageSize) || 10;
+  let options   = {
+    pageIndex: pageIndex,
+    pageSize : pageSize,
+    search   : req.query.search || ''
+  };
   try {
-    let users = await db.User.findAndCountAll({
-      attributes: ['id', 'name', 'email', 'phone', 'permission', 'intro'],
-      offset    : (pageIndex - 1) * pageSize,
-      limit     : pageSize,
-      order     : [["id", "ASC"]]
-    });
+    let users = await userService.getUsers(options);
     return res.json({Message: {users: users}, code: 0});
   } catch (err) {
     console.log(err);
@@ -29,12 +30,11 @@ async function getUsers(req, res, next) {
 }
 
 async function getUser(req, res, next) {
-  let id = parseInt(req.query.id) || 0;
+  let options = {
+    id: parseInt(req.query.id) || 0
+  };
   try {
-    let user = await db.User.findOne({
-      where     : {id: id},
-      attributes: ['id', 'name', 'email', 'phone', 'permission', 'intro']
-    });
+    let user = userService.getUser(options);
     return res.json({Message: {user: user}, code: 0});
   } catch (err) {
     console.log(err);
@@ -43,19 +43,13 @@ async function getUser(req, res, next) {
 }
 
 async function login(req, res, next) {
-  let whereUser = {
-    password: req.body.password || ''
+  let options = {
+    password: req.body.password || '',
+    email   : req.body.email || '',
+    phone   : parseInt(req.body.phone) || 0
   };
-  if (req.body.email) {
-    whereUser.email = req.body.email;
-  } else if (req.body.phone) {
-    whereUser.phone = parseInt(req.body.phone) || 0;
-  }
   try {
-    let user = await db.User.findOne({
-      where     : whereUser,
-      attributes: ['id', 'name', 'email', 'phone', 'permission', 'intro']
-    });
+    let user = await userService.login(options);
     if (user) {
       req.session.user = user;
       return res.json({Message: {user: user}, code: 0});
@@ -77,18 +71,8 @@ async function reg(req, res, next) {
     permission: 0,
     intro     : req.body.intro || ''
   };
-  let whereUser = {};
-  if (req.body.email) {
-    whereUser.email = req.body.email;
-  } else if (req.body.phone) {
-    whereUser.phone = parseInt(req.body.phone) || 0;
-  }
   try {
-    let [user, created] = await db.User.findOrCreate({
-      where     : whereUser,
-      attributes: ['id', 'name', 'email', 'phone', 'permission', 'intro'],
-      defaults  : newUser
-    });
+    let [user, created] = await userService.reg(newUser);
     if (created) {
       user.password    = '';
       req.session.user = user;
@@ -102,6 +86,40 @@ async function reg(req, res, next) {
   }
 }
 
+async function makeUsers(req, res, next) {
+  // api/v1/makeUsers?code=112458wow&num=1000
+  if (req.query.code !== '112458wow') {
+    return res.json({Message: {err: 'err code'}, code: 4});
+  } else {
+    let users = [];
+    let num   = parseInt(req.query.num) || 500;
+    for (let i = 1; i <= num; i++) {
+      let name    = 'duoyi' + i;
+      let phone   = 18826077601 + i;
+      let newUser = {
+        name      : name,
+        password  : name,
+        email     : name + '@henhaoji.com',
+        phone     : phone,
+        permission: (phone % 2) ? 90 : 0,
+        intro     : ''
+      };
+      users.push(newUser);
+    }
+    try {
+      let resultUsers = await db.User.bulkCreate(users);
+      if (resultUsers.length) {
+        return res.json({code: 0});
+      } else {
+        return res.json({code: 4});
+      }
+    } catch (err) {
+      console.log(err);
+      return res.json({Message: {err: err}, code: 4});
+    }
+  }
+}
+
 async function update(req, res, next) {
   let user = {
     id   : parseInt(req.body.id) || 0,
@@ -111,9 +129,7 @@ async function update(req, res, next) {
     intro: req.body.intro || ''
   };
   try {
-    let count = await db.User.update(user, {
-      where: {id: user.id}
-    });
+    let count = await userService.update(user);
     console.log('count is:' + count);
     if (count) {
       return res.json({code: 0, Message: {}});
@@ -127,14 +143,12 @@ async function update(req, res, next) {
 }
 
 async function grantUser(req, res, next) {
-  let user = {
+  let options = {
     id        : parseInt(req.body.id) || 0,
     permission: parseInt(req.body.permission) || 0
   };
   try {
-    let count = await db.User.update(user, {
-      where: {id: user.id}
-    });
+    let count = await userService.grantUser(options);
     if (count) {
       return res.json({code: 0});
     } else {
@@ -151,9 +165,7 @@ async function delUser(req, res, next) {
     id: parseInt(req.body.id) || 0
   };
   try {
-    let count = await db.User.destroy({
-      where: {id: user.id}
-    });
+    let count = await userService.delUser(user);
     if (count) {
       return res.json({code: 0});
     } else {

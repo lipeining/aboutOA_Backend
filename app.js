@@ -43,7 +43,7 @@ app.use(function (err, req, res, next) {
 
   // render the error page
   res.status(err.status || 404);
-  res.end({code: 4, Message: {err: 'not found'}});
+  return res.end({code: 4, Message: {err: 'not found'}});
   // res.render('error');
 });
 
