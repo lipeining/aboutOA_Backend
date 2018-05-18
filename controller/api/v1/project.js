@@ -16,7 +16,7 @@ async function getProjects(req, res, next) {
   //   pageSize : pageSize
   // };
   let options = {
-    projectId: parseInt(req.query.projectId) || 0
+    categoryId: parseInt(req.query.categoryId) || 0
   };
   try {
     let projects = await proService.getProjects(options);
@@ -41,25 +41,27 @@ async function getProject(req, res, next) {
 }
 
 async function createPro(req, res, next) {
-  if (!req.body.name || !req.body.intro) {
-    return res.json({code: 4, Message: {err: 'error input'}});
-  } else {
-    let newPro = {
-      name : req.body.name || '',
-      intro: req.body.intro || ''
-    };
-    try {
-      let [project, created] = await proService.createPro(newPro);
-      if (created) {
-        return res.json({Message: {project: project}, code: 0});
-      } else {
-        return res.json({Message: {err: 'name already used'}, code: 4});
-      }
-    } catch (err) {
-      console.log(err);
-      return res.json({Message: {err: err}, code: 4});
+  let newPro = {
+    name      : req.body.name || '',
+    intro     : req.body.intro || '',
+    logo      : req.body.logo || '',
+    segment   : req.body.segment || '',
+    url       : req.body.url || '',
+    hint      : req.body.hint || '',
+    categoryId: parseInt(req.body.categoryId) || 0
+  };
+  try {
+    let [project, created] = await proService.createPro(newPro);
+    if (created) {
+      return res.json({Message: {project: project}, code: 0});
+    } else {
+      return res.json({Message: {err: 'name already used'}, code: 4});
     }
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
   }
+
 }
 
 async function updatePro(req, res, next) {

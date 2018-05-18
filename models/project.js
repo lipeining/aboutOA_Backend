@@ -51,6 +51,13 @@ module.exports = (sequelize, DataTypes) => {
       allowNull   : false,
       comment     : 'category id'
     },
+    order: {
+      type        : DataTypes.INTEGER(11),
+      field       : 'order',
+      defaultValue: 0,
+      allowNull   : false,
+      comment     : 'project order'
+    },
     intro     : {
       type        : DataTypes.STRING(512),
       field       : 'intro',
@@ -62,7 +69,10 @@ module.exports = (sequelize, DataTypes) => {
 
   Project.associate = function (models) {
     models.Project.belongsTo(models.Category, {
-      foreignKey: 'categoryId', targetKey: 'id'
+      foreignKey: 'categoryId',
+      targetKey : 'id',
+      onDelete  : 'CASCADE',
+      onUpdate  : 'CASCADE'
     });
   };
 

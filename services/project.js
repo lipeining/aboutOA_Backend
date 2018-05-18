@@ -28,7 +28,11 @@ async function getProject(options) {
 }
 
 async function createPro(newPro) {
-  let wherePro = {name: newPro.name || ''};
+  let max         = await db.Project.max('order', {
+    where: {categoryId: newPro.categoryId}
+  }) || 0;
+  newPro['order'] = max + 1;
+  let wherePro    = {name: newPro.name || ''};
   return await db.Project.findOrCreate({
     where   : wherePro,
     raw     : true,

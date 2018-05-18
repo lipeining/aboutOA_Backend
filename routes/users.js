@@ -35,7 +35,8 @@ router.delete('/user', auth.checkLogin, auth.checkAdmin, userCtrl.delUser);
 router.get('/logout', auth.checkLogin, userCtrl.logout);
 
 // get Categories
-router.get('/categories', auth.checkLogin, cateCtrl.getCategories);
+router.get('/categories', cateCtrl.getCategories);
+// router.get('/categories', auth.checkLogin, cateCtrl.getCategories);
 
 // get Category
 router.get('/category', auth.checkLogin, cateCtrl.getCategory);

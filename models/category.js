@@ -34,7 +34,10 @@ module.exports = (sequelize, DataTypes) => {
 
   Category.associate = function (models) {
     models.Category.hasMany(models.Project, {
-      foreignKey: 'categoryId', sourceKey: 'id'
+      foreignKey: 'categoryId',
+      sourceKey : 'id',
+      onDelete  : 'CASCADE',
+      onUpdate  : 'CASCADE'
     });
   };
 

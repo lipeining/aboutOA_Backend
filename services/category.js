@@ -12,15 +12,18 @@ module.exports = {
 async function getCategories(options) {
   return await db.Category.findAll({
     attributes: ['id', 'name', 'order', 'intro'],
+    // required  : false,
     includes  : [{
-      model: db.Project,
-      raw  : true
+      model     : db.Project,
+      attributes: ['id', 'name', 'order', 'intro', 'url', 'hint', 'logo', 'categoryId', 'segment'],
+      required  : false
+      // raw  : true
     }],
     order     : [["order", "ASC"]]
   });
 
   // return await db.Category.findAndCountAll({
-  //   attributes: ['id', 'name', 'intro'],
+  //   attributes: ['id', 'name', 'order', 'intro'],
   //   includes  : [{
   //     model: db.Project
   //   }],
@@ -35,8 +38,8 @@ async function getCategory(options) {
     where     : {id: options.id},
     attributes: ['id', 'name', 'order', 'intro'],
     includes  : [{
-      model: db.Project,
-      raw  : true
+      model: db.Project
+      // raw  : true
     }]
   });
 }
