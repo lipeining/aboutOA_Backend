@@ -13,14 +13,29 @@ async function getCategories(options) {
   return await db.Category.findAll({
     attributes: ['id', 'name', 'order', 'intro'],
     // required  : false,
-    includes  : [{
+    include   : [{
       model     : db.Project,
       attributes: ['id', 'name', 'order', 'intro', 'url', 'hint', 'logo', 'categoryId', 'segment'],
       required  : false
       // raw  : true
     }],
-    order     : [["order", "ASC"]]
+    order     : [["order", "ASC"], [db.Project, "order", "ASC"]]
   });
+  // User.findAll({ include:[ Player ], order:[[Player, 'id', DESC]]});
+  // order:[[sequelize.col('player.playerLevel.level'), DESC]]
+
+  // user.getChildren({
+  //   limit: 10,
+  //   order: [['name', 'ASC']]
+  // }).then(function(children) {
+  //   user.children = children;
+  //   _.each(children, function(child) {
+  //     child.getProfiles({
+  //       limit: 3,
+  //       order: [['id', 'DESC']]
+  //     });
+  //   });
+  // });
 
   // return await db.Category.findAndCountAll({
   //   attributes: ['id', 'name', 'order', 'intro'],
@@ -37,7 +52,7 @@ async function getCategory(options) {
   return await db.Category.findOne({
     where     : {id: options.id},
     attributes: ['id', 'name', 'order', 'intro'],
-    includes  : [{
+    include   : [{
       model: db.Project
       // raw  : true
     }]
