@@ -10,11 +10,18 @@ module.exports = {
 };
 
 async function getCategories(options) {
+  let wherePro = {};
+  if (options.search) {
+    wherePro['name'] = {
+      [db.Sequelize.Op.like]: '%' + options.search + '%'
+    };
+  }
   return await db.Category.findAll({
     attributes: ['id', 'name', 'order', 'intro'],
-    // required  : false,
+    required  : false,
     include   : [{
       model     : db.Project,
+      where     : wherePro,
       attributes: ['id', 'name', 'order', 'intro', 'url', 'hint', 'logo', 'categoryId', 'segment'],
       required  : false
       // raw  : true

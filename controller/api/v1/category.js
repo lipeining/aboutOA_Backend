@@ -16,6 +16,9 @@ async function getCategories(req, res, next) {
   //   pageSize : pageSize
   // };
   let options = {};
+  if (req.query.search) {
+    options['search'] = req.query.search;
+  }
   try {
     let categories = await cateService.getCategories(options);
     return res.json({Message: {categories: categories}, code: 0});

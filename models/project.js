@@ -24,11 +24,11 @@ module.exports = (sequelize, DataTypes) => {
       comment     : 'project logo'
     },
     segment   : {
-      type        : DataTypes.STRING(256),
+      type        : DataTypes.INTEGER(11),
       field       : 'segment',
-      defaultValue: '',
+      defaultValue: 0,
       allowNull   : false,
-      comment     : 'project segment'
+      comment     : 'project segment binary [outer, middle, inner]=> number'
     },
     url       : {
       type        : DataTypes.STRING(256),

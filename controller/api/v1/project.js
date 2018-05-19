@@ -45,7 +45,7 @@ async function createPro(req, res, next) {
     name      : req.body.name || '',
     intro     : req.body.intro || '',
     logo      : req.body.logo || '',
-    segment   : req.body.segment || '',
+    segment   : parseInt(req.body.segment) || 0,
     url       : req.body.url || '',
     hint      : req.body.hint || '',
     categoryId: parseInt(req.body.categoryId) || 0

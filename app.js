@@ -5,8 +5,10 @@ var cookieParser = require('cookie-parser');
 var logger       = require('morgan');
 var session      = require('express-session')
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var indexRouter      = require('./routes/index');
+var usersRouter      = require('./routes/users');
+var categoriesRouter = require('./routes/categories');
+var projectsRouter   = require('./routes/projects');
 
 var app = express();
 
@@ -29,6 +31,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/api/v1/', usersRouter);
+app.use('/api/v1/', categoriesRouter);
+app.use('/api/v1/', projectsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -43,7 +47,7 @@ app.use(function (err, req, res, next) {
 
   // render the error page
   res.status(err.status || 404);
-  return res.end({code: 4, Message: {err: 'not found'}});
+  return res.json({code: 4, Message: {err: 'not found'}});
   // res.render('error');
 });
 
