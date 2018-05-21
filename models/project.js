@@ -30,6 +30,13 @@ module.exports = (sequelize, DataTypes) => {
       allowNull   : false,
       comment     : 'project segment binary [outer, middle, inner]=> number'
     },
+    QRCode       : {
+      type        : DataTypes.STRING(256),
+      field       : 'QR_code',
+      defaultValue: '',
+      allowNull   : false,
+      comment     : 'project QR_code'
+    },
     url       : {
       type        : DataTypes.STRING(256),
       field       : 'url',

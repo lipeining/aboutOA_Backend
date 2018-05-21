@@ -6,6 +6,7 @@ module.exports = {
   getProject,
   createPro,
   updatePro,
+  updateProjects,
   delPro,
 };
 
@@ -33,6 +34,7 @@ async function createPro(newPro) {
   }) || 0;
   newPro['order'] = max + 1;
   let wherePro    = {name: newPro.name || ''};
+  // try findCreateFind to get the new project's category
   return await db.Project.findOrCreate({
     where   : wherePro,
     raw     : true,
@@ -40,7 +42,7 @@ async function createPro(newPro) {
   });
 }
 
-async function updatePro(projects) {
+async function updateProjects(projects) {
   return db.sequelize.transaction(function (t) {
     // 在这里链接您的所有查询。 确保你返回他们。
     return BBPromise.each(projects, function (project) {
@@ -55,6 +57,12 @@ async function updatePro(projects) {
   }).catch(function (err) {
     // 事务已被回滚
     // err 是拒绝 promise 链返回到事务回调的错误
+  });
+}
+
+function updatePro(project) {
+  return db.Project.update(project, {
+    where: {id: project.id}
   });
 }
 

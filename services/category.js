@@ -11,20 +11,32 @@ module.exports = {
 
 async function getCategories(options) {
   let wherePro = {};
+  // search name and intro
   if (options.search) {
-    wherePro['name'] = {
-      [db.Sequelize.Op.like]: '%' + options.search + '%'
+    wherePro = {
+      [db.Sequelize.Op.or]: [
+        {
+          name: {
+            [db.Sequelize.Op.like]: '%' + options.search + '%'
+          }
+        },
+        {
+          intro: {
+            [db.Sequelize.Op.like]: '%' + options.search + '%'
+          }
+        }
+      ]
     };
   }
   return await db.Category.findAll({
     attributes: ['id', 'name', 'order', 'intro'],
-    required  : false,
+    // required  : false,
     include   : [{
       model     : db.Project,
       where     : wherePro,
-      attributes: ['id', 'name', 'order', 'intro', 'url', 'hint', 'logo', 'categoryId', 'segment'],
+      raw       : true,
+      attributes: ['id', 'name', 'order', 'intro', 'QRCode', 'url', 'hint', 'logo', 'categoryId', 'segment'],
       required  : false
-      // raw  : true
     }],
     order     : [["order", "ASC"], [db.Project, "order", "ASC"]]
   });

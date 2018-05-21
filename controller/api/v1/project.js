@@ -1,11 +1,19 @@
 const proService = require('../../../services/project');
+const formidable = require('formidable');
+const BBPromise  = require('bluebird');
+const fs         = BBPromise.promisifyAll(require('fs'));
+const path       = require('path');
+const fse        = require('fs-extra');
 
 module.exports = {
   getProjects,
   getProject,
   createPro,
   updatePro,
+  updateProjects,
   delPro,
+  uploadImage,
+  removeImage
 };
 
 async function getProjects(req, res, next) {
@@ -46,6 +54,7 @@ async function createPro(req, res, next) {
     intro     : req.body.intro || '',
     logo      : req.body.logo || '',
     segment   : parseInt(req.body.segment) || 0,
+    QRCode    : req.body.QRCode || '',
     url       : req.body.url || '',
     hint      : req.body.hint || '',
     categoryId: parseInt(req.body.categoryId) || 0
@@ -65,9 +74,14 @@ async function createPro(req, res, next) {
 }
 
 async function updatePro(req, res, next) {
+  // handle the logo and QR code delete the unused !
+
+}
+
+async function updateProjects(req, res, next) {
   let projects = JSON.parse(req.body.projects) || [];
   try {
-    await proService.updatePro(projects);
+    await proService.updateProjects(projects);
     return res.json({code: 0});
   } catch (err) {
     console.log(err);
@@ -92,4 +106,50 @@ async function delPro(req, res, next) {
   }
 }
 
+async function uploadImage(req, res, next) {
+  // let projects = JSON.parse(req.body.projects) || [];
+  let form = new formidable.IncomingForm();
 
+  form.parse(req, function (err, fields, files) {
+    // 0:logo 1:QR code
+    let type     = parseInt(fields.type) || 0;
+    let file     = files.file;
+    let today    = new Date();
+    let filename = today.toISOString() + '-' + file.name;
+    let newPath  = '';
+    let url      = '';
+    if (type) {
+      newPath = path.resolve(__dirname, '../../../public/images/QRCode', filename);
+      url     = path.join('/images/QRCode', filename);
+    } else {
+      newPath = path.resolve(__dirname, '../../../public/images/logo', filename);
+      url     = path.join('/images/logo', filename);
+    }
+    console.log('oldPath:' + file.path);
+    console.log('newPath:' + newPath);
+    fse.move(file.path, newPath)
+      .then(() => {
+        return res.json({code: 0, url: url});
+      })
+      .catch(err => {
+        console.error(err);
+        res.sendStatus(500);
+        return res.json({code: 4, err: err});
+      })
+  });
+}
+
+async function removeImage(req, res, next) {
+  let image = req.body.image || '';
+  try {
+    // because the image use the absolute path.
+    let rmPath = path.join(__dirname, '../../../public/', image);
+    console.log('remove:' + rmPath);
+    // fs.unlinkSync(image);
+    await fse.remove(rmPath);
+    return res.json({code: 0});
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+}
