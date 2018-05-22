@@ -63,7 +63,7 @@ async function login(req, res, next) {
 }
 
 async function reg(req, res, next) {
-  let newUser   = {
+  let newUser = {
     name      : req.body.name || '',
     password  : req.body.password || '',
     email     : req.body.email || '',
@@ -87,28 +87,14 @@ async function reg(req, res, next) {
 }
 
 async function makeUsers(req, res, next) {
-  // api/v1/makeUsers?code=112458wow&num=1000
-  if (req.query.code !== '112458wow') {
+  // api/v1/makeUsers?code=112358wow&num=1000
+  if (req.query.code !== '112358wow') {
     return res.json({Message: {err: 'err code'}, code: 4});
   } else {
-    let users = [];
-    let num   = parseInt(req.query.num) || 500;
-    for (let i = 1; i <= num; i++) {
-      let name    = 'duoyi' + i;
-      let phone   = 18826077601 + i;
-      let newUser = {
-        name      : name,
-        password  : name,
-        email     : name + '@henhaoji.com',
-        phone     : phone,
-        permission: (phone % 2) ? 90 : 0,
-        intro     : ''
-      };
-      users.push(newUser);
-    }
     try {
-      let resultUsers = await db.User.bulkCreate(users);
-      if (resultUsers.length) {
+      let num    = parseInt(req.query.num) || 500;
+      let result = await userService.makeUsers(num);
+      if (result) {
         return res.json({code: 0});
       } else {
         return res.json({code: 4});

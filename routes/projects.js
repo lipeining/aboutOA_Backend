@@ -24,11 +24,11 @@ router.put('/projects', auth.checkLogin, auth.checkAdmin, proCtrl.updateProjects
 router.delete('/project', auth.checkLogin, auth.checkAdmin, proCtrl.delPro);
 
 // upload  Project image
-// router.post('/projectimage', auth.checkLogin, auth.checkAdmin, proCtrl.uploadImage);
-router.post('/projectimage', proCtrl.uploadImage);
+router.post('/projectimage', auth.checkLogin, auth.checkAdmin, proCtrl.uploadImage);
+// router.post('/projectimage', proCtrl.uploadImage);
 
 // delete Project image
-router.delete('/projectimage', proCtrl.removeImage);
-// router.delete('/projectimage', auth.checkLogin, auth.checkAdmin, proCtrl.removeImage);
+// router.delete('/projectimage', proCtrl.removeImage);
+router.delete('/projectimage', auth.checkLogin, auth.checkAdmin, proCtrl.removeImage);
 
 module.exports = router;

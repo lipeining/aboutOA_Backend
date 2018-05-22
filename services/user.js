@@ -1,6 +1,9 @@
-const db = require('../models');
+const db     = require('../models');
+const crypto = require('crypto');
+const hmac   = crypto.createHmac('sha256', 'about oa');
 
 module.exports = {
+  makeUsers,
   getUsers,
   getUser,
   grantUser,
@@ -9,6 +12,27 @@ module.exports = {
   update,
   delUser
 };
+
+async function makeUsers(num) {
+  let users = [];
+  hmac.update('duoyi');
+  let password = hmac.digest('hex');
+  for (let i = 1; i <= num; i++) {
+    let name    = 'duoyi' + i;
+    let phone   = 18826077601 + i;
+    let newUser = {
+      name      : name,
+      password  : password,
+      email     : name + '@henhaoji.com',
+      phone     : phone,
+      permission: (phone % 2) ? 90 : 0,
+      intro     : ''
+    };
+    users.push(newUser);
+  }
+  let resultUsers = await db.User.bulkCreate(users);
+  return await resultUsers.length;
+}
 
 async function getUsers(options) {
   let whereUser = {};

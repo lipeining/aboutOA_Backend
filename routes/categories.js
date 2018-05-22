@@ -6,8 +6,8 @@ const cateCtrl = require('../controller/api/v1/category');
 const proCtrl  = require('../controller/api/v1/project');
 
 // get Categories
-router.get('/categories', cateCtrl.getCategories);
-// router.get('/categories', auth.checkLogin, cateCtrl.getCategories);
+// router.get('/categories', cateCtrl.getCategories);
+router.get('/categories', auth.checkLogin, cateCtrl.getCategories);
 
 // get Category
 router.get('/category', auth.checkLogin, cateCtrl.getCategory);

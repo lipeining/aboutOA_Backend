@@ -20,7 +20,7 @@ function checkNotLogin(req, res, next) {
 
 function checkAdmin(req, res, next) {
   if (req.session.user.permission !== 90) {
-    return res.json({code: 3});
+    return res.json({code: 5});
   }
   next();
 }

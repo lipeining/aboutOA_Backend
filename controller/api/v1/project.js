@@ -73,9 +73,35 @@ async function createPro(req, res, next) {
   }
 }
 
+// req.body.project
 async function updatePro(req, res, next) {
   // handle the logo and QR code delete the unused !
-
+  let project = JSON.parse(req.body.project) || {};
+  try {
+    let oldProject = await proService.getProject(project);
+    await proService.updatePro(project);
+    // delete the old logo and QRCode
+    console.log('remove old project  logo  and QRCode:');
+    let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
+    let rmLogo   = '';
+    let rmQRCode = '';
+    if (oldProject.logo !== project.logo) {
+      rmLogo = path.join(__dirname, '../../../public/', oldProject.logo);
+      if (allowExt.indexOf(path.extname(rmLogo)) !== -1) {
+        await fse.remove(rmLogo);
+      }
+    }
+    if (oldProject.QRCode !== project.QRCode) {
+      rmQRCode = path.join(__dirname, '../../../public/', oldProject.QRCode);
+      if (allowExt.indexOf(path.extname(rmQRCode)) !== -1) {
+        await fse.remove(rmQRCode);
+      }
+    }
+    return res.json({code: 0});
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
 }
 
 async function updateProjects(req, res, next) {
@@ -105,13 +131,13 @@ async function delPro(req, res, next) {
       let rmQRCode = '';
       if (delProject.logo) {
         rmLogo = path.join(__dirname, '../../../public/', delProject.logo);
-        if (allowExt.indexOf(path.extname(rmLogo)) !== -1){
+        if (allowExt.indexOf(path.extname(rmLogo)) !== -1) {
           await fse.remove(rmLogo);
         }
       }
       if (delProject.QRCode) {
         rmQRCode = path.join(__dirname, '../../../public/', delProject.QRCode);
-        if (allowExt.indexOf(path.extname(rmQRCode)) !== -1){
+        if (allowExt.indexOf(path.extname(rmQRCode)) !== -1) {
           await fse.remove(rmQRCode);
         }
       }
@@ -177,7 +203,7 @@ async function removeImage(req, res, next) {
     console.log('remove:' + rmPath);
     // fs.unlinkSync(image);
     let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
-    if (allowExt.indexOf(path.extname(rmPath)) !== -1){
+    if (allowExt.indexOf(path.extname(rmPath)) !== -1) {
       await fse.remove(rmPath);
     }
     return res.json({code: 0});
