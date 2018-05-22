@@ -13,9 +13,18 @@ mysql:
 
 how about try to use findCreateFind method?  
 
+gm "identify" "-ping" "-format" "%[EXIF:Orientation]" 
+"/home/node/app/public/images/logo/2018-05-22T07:28:24.164Z-windows.jpg"
+this most likely means the gm/convert binaries can't be found
+in the docker ,we did not  install the graphicsmagick so ,it's not found!
 
+docker-compose exec aboutoa bash
+root#apt-get update
+root#apt-get install graphicsmagick
 
-
+after install 
+go out and use docker commit to save the container
+by the way ,you can create a image with graphicsmagick already installed 
 
 
 

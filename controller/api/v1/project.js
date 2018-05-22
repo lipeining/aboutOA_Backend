@@ -4,6 +4,7 @@ const BBPromise  = require('bluebird');
 const fs         = BBPromise.promisifyAll(require('fs'));
 const path       = require('path');
 const fse        = require('fs-extra');
+const gm         = require('gm');
 
 module.exports = {
   getProjects,
@@ -70,7 +71,6 @@ async function createPro(req, res, next) {
     console.log(err);
     return res.json({Message: {err: err}, code: 4});
   }
-
 }
 
 async function updatePro(req, res, next) {
@@ -79,6 +79,7 @@ async function updatePro(req, res, next) {
 }
 
 async function updateProjects(req, res, next) {
+  // fix me validate the input only contain id,categoryId, order
   let projects = JSON.parse(req.body.projects) || [];
   try {
     await proService.updateProjects(projects);
@@ -94,8 +95,26 @@ async function delPro(req, res, next) {
     id: parseInt(req.body.id) || 0
   };
   try {
-    let count = await proService.delPro(project);
+    // should delete the QRCode and logo if exists
+    let delProject = await proService.getProject(project);
+    let count      = await proService.delPro(project);
     if (count) {
+      console.log('remove project and logo QRCode:');
+      let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
+      let rmLogo   = '';
+      let rmQRCode = '';
+      if (delProject.logo) {
+        rmLogo = path.join(__dirname, '../../../public/', delProject.logo);
+        if (allowExt.indexOf(path.extname(rmLogo)) !== -1){
+          await fse.remove(rmLogo);
+        }
+      }
+      if (delProject.QRCode) {
+        rmQRCode = path.join(__dirname, '../../../public/', delProject.QRCode);
+        if (allowExt.indexOf(path.extname(rmQRCode)) !== -1){
+          await fse.remove(rmQRCode);
+        }
+      }
       return res.json({code: 0});
     } else {
       return res.json({Message: {err: 'wrong id'}, code: 4});
@@ -129,7 +148,18 @@ async function uploadImage(req, res, next) {
     console.log('newPath:' + newPath);
     fse.move(file.path, newPath)
       .then(() => {
-        return res.json({code: 0, url: url});
+        // re draw picture here
+        gm(newPath)
+          .autoOrient()
+          .write(newPath,
+            function (err) {
+              if (err) {
+                console.log(err);
+                return res.json({code: 4});
+              } else {
+                return res.json({code: 0, url: url});
+              }
+            });
       })
       .catch(err => {
         console.error(err);
@@ -146,7 +176,10 @@ async function removeImage(req, res, next) {
     let rmPath = path.join(__dirname, '../../../public/', image);
     console.log('remove:' + rmPath);
     // fs.unlinkSync(image);
-    await fse.remove(rmPath);
+    let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
+    if (allowExt.indexOf(path.extname(rmPath)) !== -1){
+      await fse.remove(rmPath);
+    }
     return res.json({code: 0});
   } catch (err) {
     console.log(err);

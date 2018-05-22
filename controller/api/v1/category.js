@@ -1,4 +1,7 @@
 const cateService = require('../../../services/category');
+const proService  = require('../../../services/project');
+const fse         = require('fs-extra');
+const path        = require('path');
 
 module.exports = {
   getCategories,
@@ -79,8 +82,27 @@ async function delCate(req, res, next) {
     id: parseInt(req.body.id) || 0
   };
   try {
-    let count = await cateService.delCate(category);
+    // should delete the useless project logo and QR code
+    let projects = await proService.getProjects({categoryId: category.id});
+    let count    = await cateService.delCate(category);
     if (count) {
+      for (let project of projects) {
+        let rmLogo   = '';
+        let rmQRCode = '';
+        let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
+        if (project.logo) {
+          rmLogo = path.join(__dirname, '../../../public/', project.logo);
+          if (allowExt.indexOf(path.extname(rmLogo)) !== -1) {
+            await fse.remove(rmLogo);
+          }
+        }
+        if (project.QRCode) {
+          rmQRCode = path.join(__dirname, '../../../public/', project.QRCode);
+          if (allowExt.indexOf(path.extname(rmQRCode)) !== -1) {
+            await fse.remove(rmQRCode);
+          }
+        }
+      }
       return res.json({code: 0});
     } else {
       return res.json({Message: {err: 'wrong id'}, code: 4});
