@@ -2,8 +2,6 @@ var express    = require('express');
 var router     = express.Router();
 const auth     = require('../auth/auth');
 const userCtrl = require('../controller/api/v1/user');
-const cateCtrl = require('../controller/api/v1/category');
-const proCtrl  = require('../controller/api/v1/project');
 
 /* GET users listing. */
 router.get('/users', auth.checkLogin, auth.checkAdmin, userCtrl.getUsers);

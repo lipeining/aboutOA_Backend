@@ -1,9 +1,7 @@
-var express    = require('express');
-var router     = express.Router();
-const auth     = require('../auth/auth');
-const userCtrl = require('../controller/api/v1/user');
-const cateCtrl = require('../controller/api/v1/category');
-const proCtrl  = require('../controller/api/v1/project');
+var express   = require('express');
+var router    = express.Router();
+const auth    = require('../auth/auth');
+const proCtrl = require('../controller/api/v1/project');
 
 // get Projects
 router.get('/projects', auth.checkLogin, proCtrl.getProjects);

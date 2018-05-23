@@ -7,6 +7,7 @@ var session      = require('express-session')
 
 var indexRouter      = require('./routes/index');
 var usersRouter      = require('./routes/users');
+var logsRouter       = require('./routes/logs');
 var categoriesRouter = require('./routes/categories');
 var projectsRouter   = require('./routes/projects');
 
@@ -31,6 +32,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/api/v1/', usersRouter);
+app.use('/api/v1/', logsRouter);
 app.use('/api/v1/', categoriesRouter);
 app.use('/api/v1/', projectsRouter);
 
