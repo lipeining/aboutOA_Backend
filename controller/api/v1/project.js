@@ -1,4 +1,5 @@
 const proService = require('../../../services/project');
+const logService = require('../../../services/log');
 const formidable = require('formidable');
 const BBPromise  = require('bluebird');
 const fs         = BBPromise.promisifyAll(require('fs'));
@@ -41,7 +42,7 @@ async function getProject(req, res, next) {
     id: parseInt(req.query.id) || 0
   };
   try {
-    let project = proService.getProject(options);
+    let project = await proService.getProject(options);
     return res.json({Message: {project: project}, code: 0});
   } catch (err) {
     console.log(err);
@@ -62,9 +63,18 @@ async function createPro(req, res, next) {
   };
   try {
     let [project, created] = await proService.createPro(newPro);
+    let log                = {
+      admin  : req.session.user,
+      project: project,
+      type   : 21
+    };
     if (created) {
+      log['success'] = 1;
+      logService.insertLog(log);
       return res.json({Message: {project: project}, code: 0});
     } else {
+      log['success'] = 0;
+      logService.insertLog(log);
       return res.json({Message: {err: 'name already used'}, code: 4});
     }
   } catch (err) {
@@ -76,28 +86,42 @@ async function createPro(req, res, next) {
 // req.body.project
 async function updatePro(req, res, next) {
   // handle the logo and QR code delete the unused !
-  let project = JSON.parse(req.body.project) || {};
+  let options = JSON.parse(req.body.project) || {};
   try {
-    let oldProject = await proService.getProject(project);
-    await proService.updatePro(project);
-    // delete the old logo and QRCode
-    console.log('remove old project  logo  and QRCode:');
-    let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
-    let rmLogo   = '';
-    let rmQRCode = '';
-    if (oldProject.logo !== project.logo) {
-      rmLogo = path.join(__dirname, '../../../public/', oldProject.logo);
-      if (allowExt.indexOf(path.extname(rmLogo)) !== -1) {
-        await fse.remove(rmLogo);
+    let project = await proService.getProject(options);
+    let log     = {
+      admin  : req.session.user,
+      project: project,
+      options: options,
+      type   : 22
+    };
+    let count   = await proService.updatePro(options);
+    if (count) {
+      // delete the old logo and QRCode
+      console.log('remove old project  logo  and QRCode:');
+      let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
+      let rmLogo   = '';
+      let rmQRCode = '';
+      if (project.logo !== options.logo) {
+        rmLogo = path.join(__dirname, '../../../public/', project.logo);
+        if (allowExt.indexOf(path.extname(rmLogo)) !== -1) {
+          await fse.remove(rmLogo);
+        }
       }
-    }
-    if (oldProject.QRCode !== project.QRCode) {
-      rmQRCode = path.join(__dirname, '../../../public/', oldProject.QRCode);
-      if (allowExt.indexOf(path.extname(rmQRCode)) !== -1) {
-        await fse.remove(rmQRCode);
+      if (project.QRCode !== options.QRCode) {
+        rmQRCode = path.join(__dirname, '../../../public/', project.QRCode);
+        if (allowExt.indexOf(path.extname(rmQRCode)) !== -1) {
+          await fse.remove(rmQRCode);
+        }
       }
+      log['success'] = 1;
+      logService.insertLog(log);
+      return res.json({code: 0});
+    } else {
+      log['success'] = 0;
+      logService.insertLog(log);
+      return res.json({Message: {err: 'wrong input'}, code: 4});
     }
-    return res.json({code: 0});
   } catch (err) {
     console.log(err);
     return res.json({Message: {err: err}, code: 4});
@@ -109,6 +133,13 @@ async function updateProjects(req, res, next) {
   let projects = JSON.parse(req.body.projects) || [];
   try {
     await proService.updateProjects(projects);
+    let log = {
+      admin   : req.session.user,
+      projects: projects,
+      type    : 23,
+      success : 1
+    };
+    logService.insertLog(log);
     return res.json({code: 0});
   } catch (err) {
     console.log(err);
@@ -124,6 +155,11 @@ async function delPro(req, res, next) {
     // should delete the QRCode and logo if exists
     let delProject = await proService.getProject(project);
     let count      = await proService.delPro(project);
+    let log        = {
+      admin  : req.session.user,
+      project: delProject,
+      type   : 24
+    };
     if (count) {
       console.log('remove project and logo QRCode:');
       let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
@@ -141,8 +177,12 @@ async function delPro(req, res, next) {
           await fse.remove(rmQRCode);
         }
       }
+      log['success'] = 1;
+      logService.insertLog(log);
       return res.json({code: 0});
     } else {
+      log['success'] = 0;
+      logService.insertLog(log);
       return res.json({Message: {err: 'wrong id'}, code: 4});
     }
   } catch (err) {

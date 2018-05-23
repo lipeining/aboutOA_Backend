@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
         comment     : 'log type [1-3]-[4-6]-[7-9] [create update delete] [user category project]'
       },
       // type [1-3]-[4-6]-[7-9] [create update delete] [user category project]
+      // go to service/log.js for more information
       content   : {
         type        : DataTypes.STRING(512),
         field       : 'content',

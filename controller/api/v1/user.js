@@ -1,4 +1,5 @@
 const userService = require('../../../services/user');
+const logService  = require('../../../services/log');
 
 module.exports = {
   makeUsers,
@@ -134,10 +135,21 @@ async function grantUser(req, res, next) {
     permission: parseInt(req.body.permission) || 0
   };
   try {
+    let user  = await userService.getUser(options);
     let count = await userService.grantUser(options);
+    let log   = {
+      admin  : req.session.user,
+      user   : user,
+      options: options,
+      type   : 2
+    };
     if (count) {
+      log['success'] = 1;
+      logService.insertLog(log);
       return res.json({code: 0});
     } else {
+      log['success'] = 0;
+      logService.insertLog(log);
       return res.json({Message: {err: 'wrong input'}, code: 4});
     }
   } catch (err) {
@@ -147,14 +159,24 @@ async function grantUser(req, res, next) {
 }
 
 async function delUser(req, res, next) {
-  let user = {
+  let options = {
     id: parseInt(req.body.id) || 0
   };
   try {
-    let count = await userService.delUser(user);
+    let user  = await userService.getUser(options);
+    let log   = {
+      admin: req.session.user,
+      user : user,
+      type : 3
+    };
+    let count = await userService.delUser(options);
     if (count) {
+      log['success'] = 1;
+      logService.insertLog(log);
       return res.json({code: 0});
     } else {
+      log['success'] = 0;
+      logService.insertLog(log);
       return res.json({Message: {err: 'wrong id'}, code: 4});
     }
   } catch (err) {

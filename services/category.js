@@ -6,6 +6,7 @@ module.exports = {
   getCategory,
   createCate,
   updateCate,
+  updateCategories,
   delCate,
 };
 
@@ -72,8 +73,9 @@ async function getCategory(options) {
     where     : {id: options.id},
     attributes: ['id', 'name', 'order', 'intro'],
     include   : [{
-      model: db.Project
-      // raw  : true
+      model   : db.Project,
+      raw     : true,
+      required: false
     }]
   });
 }
@@ -89,7 +91,13 @@ async function createCate(newCate) {
   });
 }
 
-async function updateCate(categories) {
+async function updateCate(category) {
+  return db.Category.update(category, {
+    where: {id: category.id},
+  });
+}
+
+async function updateCategories(categories) {
   return db.sequelize.transaction(function (t) {
     // 在这里链接您的所有查询。 确保你返回他们。
     return BBPromise.each(categories, function (cate) {

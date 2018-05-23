@@ -1,5 +1,5 @@
 const cateService = require('../../../services/category');
-const proService  = require('../../../services/project');
+const logService  = require('../../../services/log');
 const fse         = require('fs-extra');
 const path        = require('path');
 
@@ -8,6 +8,7 @@ module.exports = {
   getCategory,
   createCate,
   updateCate,
+  updateCategories,
   delCate,
 };
 
@@ -54,9 +55,18 @@ async function createCate(req, res, next) {
     };
     try {
       let [category, created] = await cateService.createCate(newCate);
+      let log                 = {
+        admin   : req.session.user,
+        category: category,
+        type    : 11
+      };
       if (created) {
+        log['success'] = 1;
+        logService.insertLog(log);
         return res.json({Message: {category: category}, code: 0});
       } else {
+        log['success'] = 0;
+        logService.insertLog(log);
         return res.json({Message: {err: 'name already used'}, code: 4});
       }
     } catch (err) {
@@ -67,9 +77,42 @@ async function createCate(req, res, next) {
 }
 
 async function updateCate(req, res, next) {
+  let options = JSON.parse(req.body.category) || {};
+  try {
+    let category = await cateService.getCategory(options);
+    let count    = await cateService.updateCate(options);
+    let log      = {
+      admin   : req.session.user,
+      category: category,
+      options : options,
+      type    : 12
+    };
+    if (count) {
+      log['success'] = 1;
+      logService.insertLog(log);
+      return res.json({code: 0});
+    } else {
+      log['success'] = 0;
+      logService.insertLog(log);
+      return res.json({Message: {err: 'wrong input'}, code: 4});
+    }
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+}
+
+async function updateCategories(req, res, next) {
   let categories = JSON.parse(req.body.categories) || [];
   try {
-    await cateService.updateCate(categories);
+    await cateService.updateCategories(categories);
+    let log = {
+      admin     : req.session.user,
+      categories: categories,
+      type      : 13,
+      success   : 1
+    };
+    logService.insertLog(log);
     return res.json({code: 0});
   } catch (err) {
     console.log(err);
@@ -78,13 +121,22 @@ async function updateCate(req, res, next) {
 }
 
 async function delCate(req, res, next) {
-  let category = {
+  let options = {
     id: parseInt(req.body.id) || 0
   };
   try {
     // should delete the useless project logo and QR code
-    let projects = await proService.getProjects({categoryId: category.id});
-    let count    = await cateService.delCate(category);
+
+    let category = await cateService.getCategory(options);
+    // let projects = await proService.getProjects({categoryId: options.id});
+    let projects = category.Projects;
+    let count    = await cateService.delCate(options);
+    let log      = {
+      admin   : req.session.user,
+      category: category,
+      projects: projects,
+      type    : 14
+    };
     if (count) {
       for (let project of projects) {
         let rmLogo   = '';
@@ -103,8 +155,12 @@ async function delCate(req, res, next) {
           }
         }
       }
+      log['success'] = 1;
+      logService.insertLog(log);
       return res.json({code: 0});
     } else {
+      log['success'] = 0;
+      logService.insertLog(log);
       return res.json({Message: {err: 'wrong id'}, code: 4});
     }
   } catch (err) {

@@ -23,8 +23,10 @@ async function getProjects(options) {
 
 async function getProject(options) {
   return await db.Project.findOne({
-    where: {id: options.id},
-    raw  : true
+    where  : {id: options.id},
+    include: [{
+      model: db.Category
+    }]
   });
 }
 
@@ -35,9 +37,13 @@ async function createPro(newPro) {
   newPro['order'] = max + 1;
   let wherePro    = {name: newPro.name || ''};
   // try findCreateFind to get the new project's category
-  return await db.Project.findOrCreate({
+  return await db.Project.findCreateFind({
     where   : wherePro,
     raw     : true,
+    include : [{
+      model: db.Category,
+      raw  : true
+    }],
     defaults: newPro
   });
 }
