@@ -1,5 +1,9 @@
 const userService = require('../../../services/user');
 const logService  = require('../../../services/log');
+const captcha     = require('trek-captcha');
+const fse         = require('fs-extra');
+const fs          = require('fs');
+const path        = require('path');
 
 module.exports = {
   makeUsers,
@@ -10,7 +14,9 @@ module.exports = {
   reg,
   update,
   delUser,
-  logout
+  logout,
+  getCaptcha,
+  removeCaptcha
 };
 
 async function getUsers(req, res, next) {
@@ -44,22 +50,31 @@ async function getUser(req, res, next) {
 }
 
 async function login(req, res, next) {
-  let options = {
+  let options     = {
     password: req.body.password || '',
     email   : req.body.email || '',
     phone   : parseInt(req.body.phone) || 0
   };
-  try {
-    let user = await userService.login(options);
-    if (user) {
-      req.session.user = user;
-      return res.json({Message: {user: user}, code: 0});
-    } else {
-      return res.json({Message: {err: 'wrong password'}, code: 4});
+  let captchaCode = req.body.code || '';
+  if (req.session.captchaToken && captchaCode === req.session.captchaToken) {
+    try {
+      let user = await userService.login(options);
+      if (user) {
+        req.session.user = user;
+        // remove the old captcha
+        fse.remove(req.session.captchaPath);
+        req.session.captchaToken = null;
+        req.session.captchaPath  = null;
+        return res.json({Message: {user: user}, code: 0});
+      } else {
+        return res.json({Message: {err: 'wrong password'}, code: 4});
+      }
+    } catch (err) {
+      console.log('login:' + err);
+      return res.json({Message: {err: err}, code: 4});
     }
-  } catch (err) {
-    console.log('login:' + err);
-    return res.json({Message: {err: err}, code: 4});
+  } else {
+    return res.json({Message: {err: 'wrong captcha code'}, code: 4});
   }
 }
 
@@ -188,4 +203,53 @@ async function delUser(req, res, next) {
 async function logout(req, res, next) {
   req.session.user = null;
   return res.json({code: 0});
+}
+
+async function getCaptcha(req, res, next) {
+  try {
+    // first generate a new captcha
+    const {token, buffer} = await captcha();
+    let filename          = `token-${Date.now()}.gif`;
+    let url               = path.join('/images/captchas', filename);
+    let filePath          = path.resolve(__dirname, '../../../public/images/captchas', filename);
+    await fse.outputFile(filePath, buffer);
+    // fs.writeFile(filepath, buffer);
+    // fs.writeFile(filepath, buffer, {encoding: 'buffer'});
+    // fs.createWriteStream(filepath).on('finish', () => console.log(token)).end(buffer);
+
+    // second update the session captcha and token
+    if (req.session.captchaToken && req.session.captchaPath) {
+      // remove the old captcha
+      await fse.remove(req.session.captchaPath);
+    }
+    req.session.captchaToken = token;
+    req.session.captchaPath  = filePath;
+
+    res.json({Message: {captcha: url}, code: 0});
+  } catch (err) {
+    res.json({code: 4, Message: {err: err}});
+  }
+}
+
+// shall we remove the captcha ?
+// if not , when the session timeout is end ,
+// the req.session.captchaPath is gone , the picture would not be deleted!
+
+async function removeCaptcha(req, res, next) {
+  let url = req.body.url || '';
+  try {
+    let rmPath = path.join(__dirname, '../../../public/', url);
+    console.log('remove captcha:' + rmPath);
+    if (path.extname(rmPath) === '.gif') {
+      await fse.remove(rmPath);
+      req.session.captchaPath  = null;
+      req.session.captchaToken = null;
+      return res.json({code: 0});
+    } else {
+      res.json({Message: {err: 'not a gif '}, code: 4});
+    }
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
 }

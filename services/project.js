@@ -36,7 +36,7 @@ async function createPro(newPro) {
   }) || 0;
   newPro['order'] = max + 1;
   let wherePro    = {name: newPro.name || ''};
-  // try findCreateFind to get the new project's category
+  // try findCreateFind to get the new project's category, don't work
   return await db.Project.findCreateFind({
     where   : wherePro,
     raw     : true,
@@ -51,9 +51,11 @@ async function createPro(newPro) {
 async function updateProjects(projects) {
   return db.sequelize.transaction(function (t) {
     // 在这里链接您的所有查询。 确保你返回他们。
+    // take care of fields , make sure just update the order and categoryId
     return BBPromise.each(projects, function (project) {
       return db.Project.update(project, {
         where      : {id: project.id},
+        fields     : ['order', 'categoryId'],
         transaction: t
       });
     });

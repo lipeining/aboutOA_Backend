@@ -29,5 +29,8 @@ router.delete('/user', auth.checkLogin, auth.checkAdmin, userCtrl.delUser);
 
 // logout
 router.get('/logout', auth.checkLogin, userCtrl.logout);
+// get captcha
+router.get('/captcha', auth.checkNotLogin, userCtrl.getCaptcha);
+router.delete('/captcha', auth.checkNotLogin, userCtrl.removeCaptcha);
 
 module.exports = router;

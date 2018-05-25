@@ -37,7 +37,7 @@ async function getCategories(options) {
       where     : wherePro,
       raw       : true,
       attributes: ['id', 'name', 'order', 'intro', 'QRCode', 'url', 'hint', 'logo', 'categoryId', 'segment'],
-      required  : false
+      // required  : false
     }],
     order     : [["order", "ASC"], [db.Project, "order", "ASC"]]
   });
@@ -100,9 +100,11 @@ async function updateCate(category) {
 async function updateCategories(categories) {
   return db.sequelize.transaction(function (t) {
     // 在这里链接您的所有查询。 确保你返回他们。
+    // take care of fields , make sure just update the order
     return BBPromise.each(categories, function (cate) {
       return db.Category.update(cate, {
         where      : {id: cate.id},
+        fields     : ['order'],
         transaction: t
       });
     });
