@@ -4,6 +4,18 @@ const captcha     = require('trek-captcha');
 const fse         = require('fs-extra');
 const fs          = require('fs');
 const path        = require('path');
+// const redis     = require("redis");
+// const BBPromise = require("bluebird");
+// BBPromise.promisifyAll(redis.RedisClient.prototype);
+const _     = require('lodash');
+const Redis = require('ioredis');
+const redis = new Redis({
+  port    : 6379,          // Redis port
+  host    : 'redis',   // Redis host
+  family  : 4,           // 4 (IPv4) or 6 (IPv6)
+  password: 'admin',
+  db      : 8
+});
 
 module.exports = {
   makeUsers,
@@ -50,31 +62,77 @@ async function getUser(req, res, next) {
 }
 
 async function login(req, res, next) {
-  let options     = {
+
+  // let users = await redis.get("users");
+  // console.log(users);
+  // users = JSON.parse(users);
+  // console.log(users);
+  // if (_.isEmpty(users)) {
+  //   users = await db.User.findAndCountAll({
+  //     offset: (pageIndex - 1) * pageSize,
+  //     limit : pageSize,
+  //     order : [["id", "DESC"]]
+  //   });
+  //   await redis.set("users", JSON.stringify(users), "EX", "1800");
+  // }
+
+  let options = {
     password: req.body.password || '',
     email   : req.body.email || '',
     phone   : parseInt(req.body.phone) || 0
   };
+  // now just use phone to store count
+  // if count is timestamps , check if passed
+  // else if count is integer, check > 5?
+  // else the user is able to try login
+  // what we get is a string ,should parseInt
+  let count       = await redis.get(`${options.phone}-cnt`);
+  count           = parseInt(count) || 0;
   let captchaCode = req.body.code || '';
-  if (req.session.captchaToken && captchaCode === req.session.captchaToken) {
-    try {
-      let user = await userService.login(options);
-      if (user) {
-        req.session.user = user;
-        // remove the old captcha
-        fse.remove(req.session.captchaPath);
-        req.session.captchaToken = null;
-        req.session.captchaPath  = null;
-        return res.json({Message: {user: user}, code: 0});
-      } else {
-        return res.json({Message: {err: 'wrong password'}, code: 4});
-      }
-    } catch (err) {
-      console.log('login:' + err);
-      return res.json({Message: {err: err}, code: 4});
-    }
+  let now         = Date.now();
+  console.log(`count is ${count}`);
+  if (count > now) {
+    let time = ((count - now) / 1000 / 60 / 60).toFixed(3);
+    return res.json({Message: {err: `the user has try more than 5 times, try after ${time} hours`}, code: 4});
   } else {
-    return res.json({Message: {err: 'wrong captcha code'}, code: 4});
+
+    // count should less than 5 .
+    if (req.session.captchaToken && captchaCode === req.session.captchaToken) {
+      try {
+        let user = await userService.login(options);
+        if (user) {
+          // clear the count
+          await redis.del(`${options.phone}-cnt`);
+          req.session.user = user;
+          // remove the old captcha
+          fse.remove(req.session.captchaPath);
+          req.session.captchaToken = null;
+          req.session.captchaPath  = null;
+          return res.json({Message: {user: user}, code: 0});
+        } else {
+          // wrong password should count++ ,check if >= 5?
+          count += 1;
+          if (count > 10) {
+            // count is timestamps reset it!
+            count = 0;
+            await redis.set(`${options.phone}-cnt`, count);
+          } else if (count >= 5) {
+            // >=5  set 1 minute timeout
+            // count = Date.now() + 3600 * 1000 * 2;
+            count = Date.now() + 60 * 1000;
+            await redis.set(`${options.phone}-cnt`, count);
+          } else {
+            await redis.set(`${options.phone}-cnt`, count);
+          }
+          return res.json({Message: {err: 'wrong password'}, code: 4});
+        }
+      } catch (err) {
+        console.log('login:' + err);
+        return res.json({Message: {err: err}, code: 4});
+      }
+    } else {
+      return res.json({Message: {err: 'wrong captcha code'}, code: 4});
+    }
   }
 }
 
@@ -224,7 +282,7 @@ async function getCaptcha(req, res, next) {
     }
     req.session.captchaToken = token;
     req.session.captchaPath  = filePath;
-
+    console.log(`token:${token}`);
     res.json({Message: {captcha: url}, code: 0});
   } catch (err) {
     res.json({code: 4, Message: {err: err}});
