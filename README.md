@@ -98,7 +98,34 @@ root#apt-get update
 root#apt-get install graphicsmagick
 root#exit
 docker commit [OPTIONS] CONTAINER [REPOSITORY[:TAG]]
-// so restart the aboutoa
-docker-compose restart aboutoa
+// for example
+docker commit backend_aboutoa_1 backend-node-8-gm:1.0
+// so change the image of docker-compose - services-aboutoa
+version: '3'
+
+services:
+  aboutoa:
+    image: "backend-node-8-gm:1.0"
+    ...
+    
+you should stop the aboutoa and rm it.
+docker-compose stop aboutoa
+docker-compose rm aboutoa
+// now start the aboutoa ,the image would change!
+docker-compose up -d
 ```
 
+## how to import aboutOA_Vue into aboutOA_Backend
+
+// first build up the Vue project into dist
+``` bash
+npm run build
+// after this, mv the dist directory to Backend directory
+mv -r path/to/dist/ path/to/backend/
+// and then change some line in app.js
+// add dist after public line 36 app.js 
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'dist'))); 
+
+```
+now you can open localhost:3000 to use it!

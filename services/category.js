@@ -37,7 +37,7 @@ async function getCategories(options) {
       where     : wherePro,
       raw       : true,
       attributes: ['id', 'name', 'order', 'intro', 'QRCode', 'url', 'hint', 'logo', 'categoryId', 'segment'],
-      // required  : false
+      required  : false
     }],
     order     : [["order", "ASC"], [db.Project, "order", "ASC"]]
   });
