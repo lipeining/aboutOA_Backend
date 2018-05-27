@@ -55,14 +55,14 @@ module.exports = (sequelize, DataTypes) => {
     {
       indexes: [
         // 在 email 上创建一个唯一索引
-        {
-          unique: true,
-          fields: ['email']
-        },
-        {
-          unique: true,
-          fields: ['phone']
-        }
+        // {
+        //   unique: true,
+        //   fields: ['email']
+        // },
+        // {
+        //   unique: true,
+        //   fields: ['phone']
+        // }
       ]
     });
 

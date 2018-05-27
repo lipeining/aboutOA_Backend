@@ -95,7 +95,6 @@ async function login(req, res, next) {
     let time = ((count - now) / 1000 / 60 / 60).toFixed(3);
     return res.json({Message: {err: `the user has try more than 5 times, try after ${time} hours`}, code: 4});
   } else {
-
     // count should less than 5 .
     if (req.session.captchaToken && captchaCode === req.session.captchaToken) {
       try {
@@ -111,19 +110,20 @@ async function login(req, res, next) {
           return res.json({Message: {user: user}, code: 0});
         } else {
           // wrong password should count++ ,check if >= 5?
+
           count += 1;
           if (count > 10) {
             // count is timestamps reset it!
             count = 0;
-            await redis.set(`${options.phone}-cnt`, count);
           } else if (count >= 5) {
             // >=5  set 1 minute timeout
             // count = Date.now() + 3600 * 1000 * 2;
             count = Date.now() + 60 * 1000;
-            await redis.set(`${options.phone}-cnt`, count);
           } else {
-            await redis.set(`${options.phone}-cnt`, count);
+            //do nothing
           }
+          // set 2 hours 60*60*2*1000
+          await redis.set(`${options.phone}-cnt`, count, 'EX', 60 * 60 * 2);
           return res.json({Message: {err: 'wrong password'}, code: 4});
         }
       } catch (err) {
@@ -137,26 +137,40 @@ async function login(req, res, next) {
 }
 
 async function reg(req, res, next) {
-  let newUser = {
-    name      : req.body.name || '',
-    password  : req.body.password || '',
-    email     : req.body.email || '',
-    phone     : parseInt(req.body.phone) || 0,
-    permission: 0,
-    intro     : req.body.intro || ''
-  };
-  try {
-    let [user, created] = await userService.reg(newUser);
-    if (created) {
-      user.password    = '';
-      req.session.user = user;
-      return res.json({Message: {user: user}, code: 0});
-    } else {
-      return res.json({Message: {err: 'already created'}, code: 4});
+  console.log(`request ip:${req.ip}`);
+  console.log(`request ips:${req.ips}`);
+  let ipReg    = `${req.ip}-reg`;
+  let ipRegCnt = await redis.get(ipReg);
+  ipRegCnt     = parseInt(ipRegCnt) || 0;
+  console.log(`ip reg count:${ipRegCnt}`);
+  if (ipRegCnt >= 3) {
+    return res.json({code: 4, Message: {err: `to many register from ${req.ip}`}});
+  } else {
+    //
+    let newUser = {
+      name      : req.body.name || '',
+      password  : req.body.password || '',
+      email     : req.body.email || '',
+      phone     : parseInt(req.body.phone) || 0,
+      permission: 0,
+      intro     : req.body.intro || ''
+    };
+    try {
+      let [user, created] = await userService.reg(newUser);
+      if (created) {
+        // set timeout to be 8 hour?60*60*8
+        // await redis.set(ipReg, ipRegCnt + 1, 'EX', 60 * 60 * 8);
+        await redis.set(ipReg, ipRegCnt + 1, 'EX', 60);
+        user.password    = '';
+        req.session.user = user;
+        return res.json({Message: {user: user}, code: 0});
+      } else {
+        return res.json({Message: {err: 'already created'}, code: 4});
+      }
+    } catch (err) {
+      console.log(err);
+      return res.json({Message: {err: err}, code: 4});
     }
-  } catch (err) {
-    console.log(err);
-    return res.json({Message: {err: err}, code: 4});
   }
 }
 
