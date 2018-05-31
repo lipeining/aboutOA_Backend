@@ -16,7 +16,10 @@ router.post('/category', auth.checkLogin, auth.checkAdmin, cateCtrl.createCate);
 // update Category
 router.put('/category', auth.checkLogin, auth.checkAdmin, cateCtrl.updateCate);
 
-// update Categories
+// update Category order
+router.put('/categoryOrder', auth.checkLogin, auth.checkAdmin, cateCtrl.updateCateOrder);
+
+// update Categories orders
 router.put('/categories', auth.checkLogin, auth.checkAdmin, cateCtrl.updateCategories);
 
 // delete Category

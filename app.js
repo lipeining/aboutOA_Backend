@@ -34,7 +34,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.use('/', indexRouter);
-app.use('/api/v1/', auth.checkFrequency, usersRouter);
+// app.use('/api/v1/', auth.checkFrequency, usersRouter);
+app.use('/api/v1/', usersRouter);
 app.use('/api/v1/', logsRouter);
 app.use('/api/v1/', categoriesRouter);
 app.use('/api/v1/', projectsRouter);

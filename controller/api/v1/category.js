@@ -8,18 +8,18 @@ module.exports = {
   getCategory,
   createCate,
   updateCate,
+  updateCateOrder,
   updateCategories,
   delCate,
 };
 
 async function getCategories(req, res, next) {
-  // let pageIndex = parseInt(req.query.pageIndex) || 1;
-  // let pageSize  = parseInt(req.query.pageSize) || 10;
-  // let options   = {
-  //   pageIndex: pageIndex,
-  //   pageSize : pageSize
-  // };
-  let options = {};
+  let pageIndex = parseInt(req.query.pageIndex) || 1;
+  let pageSize  = parseInt(req.query.pageSize) || 10;
+  let options   = {
+    pageIndex: pageIndex,
+    pageSize : pageSize
+  };
   if (req.query.search) {
     options['search'] = req.query.search;
   }
@@ -102,6 +102,35 @@ async function updateCate(req, res, next) {
   }
 }
 
+/*
+ *@params req.body.id
+ *@params req.body.order
+ */
+async function updateCateOrder(req, res, next) {
+  let options = JSON.parse(req.body.category) || {};
+  try {
+    // how to make sure the category is not {}
+    let category = await cateService.getCategory(options);
+    if (category.id) {
+      await cateService.updateCateOrder(category, options);
+      let log        = {
+        admin   : req.session.user,
+        category: category,
+        options : options,
+        type    : 12
+      };
+      log['success'] = 1;
+      logService.insertLog(log);
+      return res.json({code: 0});
+    } else {
+      return res.json({Message: {err: 'wrong input no such category'}, code: 4});
+    }
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+}
+
 async function updateCategories(req, res, next) {
   let categories = JSON.parse(req.body.categories) || [];
   try {
@@ -127,7 +156,7 @@ async function delCate(req, res, next) {
   try {
     // should delete the useless project logo and QR code
 
-    let category = await cateService.getCategory(options);
+    let category = await cateService.getCategoryWithProjects(options);
     // let projects = await proService.getProjects({categoryId: options.id});
     let projects = category.Projects;
     let count    = await cateService.delCate(options);
