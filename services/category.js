@@ -46,7 +46,6 @@ async function getCategories(options) {
   // User.findAll({ include:[ Player ], order:[[Player, 'id', DESC]]});
   // order:[[sequelize.col('player.playerLevel.level'), DESC]]
 
-
   return await db.Category.findAndCountAll({
     attributes: ['id', 'name', 'order', 'intro'],
     // includes  : [{
@@ -55,7 +54,7 @@ async function getCategories(options) {
     // }],
     offset    : (options.pageIndex - 1) * options.pageSize,
     limit     : options.pageSize,
-    order     : [["id", "ASC"]]
+    order     : [["order", "ASC"]]
   });
 }
 
@@ -92,7 +91,8 @@ async function createCate(newCate) {
 
 async function updateCate(category) {
   return db.Category.update(category, {
-    where: {id: category.id},
+    where : {id: category.id},
+    fields: ['name', 'intro']
   });
 }
 
@@ -138,12 +138,12 @@ async function updateCateOrder(category, options) {
         return db.Category.increment({
           order: plus
         }, {
-          where: {
+          where      : {
             id: {
               [db.Sequelize.Op.in]: affectedIds
             }
           },
-          transaction:t
+          transaction: t
         });
       });
   }).then(function (result) {
