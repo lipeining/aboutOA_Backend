@@ -7,6 +7,9 @@ const cateCtrl = require('../controller/api/v1/category');
 // router.get('/categories', cateCtrl.getCategories);
 router.get('/categories', auth.checkLogin, cateCtrl.getCategories);
 
+// get Category names
+router.get('/categorynames', auth.checkLogin, cateCtrl.getCategoryNames);
+
 // get Category
 router.get('/category', auth.checkLogin, cateCtrl.getCategory);
 

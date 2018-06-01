@@ -10,6 +10,7 @@ const gm         = require('gm');
 module.exports = {
   getProjects,
   getProject,
+  getProjectNames,
   createPro,
   updatePro,
   updateProjects,
@@ -19,18 +20,33 @@ module.exports = {
 };
 
 async function getProjects(req, res, next) {
-  // let pageIndex = parseInt(req.query.pageIndex) || 1;
-  // let pageSize  = parseInt(req.query.pageSize) || 10;
-  // let options   = {
-  //   pageIndex: pageIndex,
-  //   pageSize : pageSize
-  // };
+  let pageIndex  = parseInt(req.query.pageIndex) || 1;
+  let pageSize   = parseInt(req.query.pageSize) || 20;
+  let categoryId = parseInt(req.query.categoryId) || 0;
+  let options    = {
+    pageIndex : pageIndex,
+    pageSize  : pageSize,
+    categoryId: categoryId
+  };
+  if (req.query.search) {
+    options['search'] = req.query.search;
+  }
+  try {
+    let projects = await proService.getProjects(options);
+    return res.json({Message: {projects: projects}, code: 0});
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+}
+
+async function getProjectNames(req, res, next) {
   let options = {
     categoryId: parseInt(req.query.categoryId) || 0
   };
   try {
-    let projects = await proService.getProjects(options);
-    return res.json({Message: {projects: projects}, code: 0});
+    let projectNames = await proService.getProjectNames(options);
+    return res.json({Message: {projectNames: projectNames}, code: 0});
   } catch (err) {
     console.log(err);
     return res.json({Message: {err: err}, code: 4});
@@ -97,8 +113,15 @@ async function updatePro(req, res, next) {
     };
     let count   = await proService.updatePro(options);
     if (count) {
+      if (project.categoryId !== options.categoryId){
+        await proService.changeCategoryOrder(project,options);
+      } else if (project.order!==options.order){
+        await proService.updateProOrder(project, options);
+      } else {
+        // do nothing
+      }
+
       // delete the old logo and QRCode
-      console.log('remove old project  logo  and QRCode:');
       let allowExt = ['.jpeg', '.jpg', '.gif', '.png'];
       let rmLogo   = '';
       let rmQRCode = '';
@@ -114,9 +137,10 @@ async function updatePro(req, res, next) {
           await fse.remove(rmQRCode);
         }
       }
+      console.log(`remove old project  logo  and QRCode: ${rmLogo} and ${rmQRCode}`);
       log['success'] = 1;
       logService.insertLog(log);
-      return res.json({code: 0});
+      return res.json({code: 0, Message: {}});
     } else {
       log['success'] = 0;
       logService.insertLog(log);
@@ -140,7 +164,7 @@ async function updateProjects(req, res, next) {
       success : 1
     };
     logService.insertLog(log);
-    return res.json({code: 0});
+    return res.json({code: 0, Message: {}});
   } catch (err) {
     console.log(err);
     return res.json({Message: {err: err}, code: 4});
@@ -179,7 +203,7 @@ async function delPro(req, res, next) {
       }
       log['success'] = 1;
       logService.insertLog(log);
-      return res.json({code: 0});
+      return res.json({code: 0, Message: {}});
     } else {
       log['success'] = 0;
       logService.insertLog(log);
@@ -221,7 +245,7 @@ async function uploadImage(req, res, next) {
             function (err) {
               if (err) {
                 console.log(err);
-                return res.json({code: 4});
+                return res.json({code: 4, Message:{err: 'gm image err'}});
               } else {
                 return res.json({code: 0, url: url});
               }
@@ -246,7 +270,7 @@ async function removeImage(req, res, next) {
     if (allowExt.indexOf(path.extname(rmPath)) !== -1) {
       await fse.remove(rmPath);
     }
-    return res.json({code: 0});
+    return res.json({code: 0, Message:{}});
   } catch (err) {
     console.log(err);
     return res.json({Message: {err: err}, code: 4});

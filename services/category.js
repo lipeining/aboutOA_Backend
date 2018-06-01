@@ -4,6 +4,7 @@ const BBPromise = require('bluebird');
 module.exports = {
   getCategories,
   getCategory,
+  getCategoryNames,
   getCategoryWithProjects,
   createCate,
   updateCate,
@@ -55,6 +56,14 @@ async function getCategories(options) {
     offset    : (options.pageIndex - 1) * options.pageSize,
     limit     : options.pageSize,
     order     : [["order", "ASC"]]
+  });
+}
+
+async function getCategoryNames() {
+  return await db.Category.findAll({
+    attributes: ['id', 'name', 'order'],
+    raw       : true,
+    order     : [['order', 'ASC']]
   });
 }
 

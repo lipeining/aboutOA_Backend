@@ -5,6 +5,7 @@ const path        = require('path');
 
 module.exports = {
   getCategories,
+  getCategoryNames,
   getCategory,
   createCate,
   updateCate,
@@ -26,6 +27,16 @@ async function getCategories(req, res, next) {
   try {
     let categories = await cateService.getCategories(options);
     return res.json({Message: {categories: categories}, code: 0});
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+}
+
+async function getCategoryNames(req, res, next) {
+  try {
+    let categoryNames = await cateService.getCategoryNames();
+    return res.json({Message: {categoryNames: categoryNames}, code: 0});
   } catch (err) {
     console.log(err);
     return res.json({Message: {err: err}, code: 4});
@@ -81,7 +92,10 @@ async function updateCate(req, res, next) {
   try {
     let category = await cateService.getCategory(options);
     let count    = await cateService.updateCate(options);
-    let log      = {
+    if (category.order !== options.order) {
+      await cateService.updateCateOrder(category, options);
+    }
+    let log = {
       admin   : req.session.user,
       category: category,
       options : options,

@@ -6,6 +6,9 @@ const proCtrl = require('../controller/api/v1/project');
 // get Projects
 router.get('/projects', auth.checkLogin, proCtrl.getProjects);
 
+// get Project names
+router.get('/projectnames', auth.checkLogin, proCtrl.getProjectNames);
+
 // get Project
 router.get('/project', auth.checkLogin, proCtrl.getProject);
 
