@@ -7,6 +7,9 @@ const path        = require('path');
 // const redis     = require("redis");
 // const BBPromise = require("bluebird");
 // BBPromise.promisifyAll(redis.RedisClient.prototype);
+
+// const ioService = require('../../../services/io');
+
 const _     = require('lodash');
 const Redis = require('ioredis');
 const redis = new Redis({
@@ -232,11 +235,18 @@ async function grantUser(req, res, next) {
     };
     if (count) {
       log['success'] = 1;
-      logService.insertLog(log);
+      let logContent = await logService.insertLog(log);
+      // await ioService.sendLog(logContent);
+      // console.log(res.adminNamespace);
+      // res.io.sockets.emit('newLog', logContent);
+      res.adminNamespace.emit('adminLog', logContent);
       return res.json({code: 0});
     } else {
       log['success'] = 0;
-      logService.insertLog(log);
+      let logContent = await logService.insertLog(log);
+      // await ioService.sendLog(logContent);
+      // res.io.sockets.emit('newLog', logContent);
+      res.adminNamespace.emit('adminLog', logContent);
       return res.json({Message: {err: 'wrong input'}, code: 4});
     }
   } catch (err) {
@@ -259,11 +269,15 @@ async function delUser(req, res, next) {
     let count = await userService.delUser(options);
     if (count) {
       log['success'] = 1;
-      logService.insertLog(log);
+      let logContent = await logService.insertLog(log);
+      // await ioService.sendLog(logContent);
+      res.io.sockets.emit('newLog', logContent);
       return res.json({code: 0});
     } else {
       log['success'] = 0;
-      logService.insertLog(log);
+      let logContent = await logService.insertLog(log);
+      // await ioService.sendLog(logContent);
+      res.io.sockets.emit('newLog', logContent);
       return res.json({Message: {err: 'wrong id'}, code: 4});
     }
   } catch (err) {

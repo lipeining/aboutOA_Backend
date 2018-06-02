@@ -20,6 +20,11 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+var io     = require('socket.io')(server);
+
+const handleIO = require('../socket');
+
+io.on('connection', handleIO.handleConnection);
 
 function modelAssociate() {
   db.Category.hasMany(db.Project, {

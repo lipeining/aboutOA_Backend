@@ -50,43 +50,43 @@ async function insertLog(log) {
       break;
     case 2:
       // for update user ,just grant admin grant user
-      logGrantUser(log);
+      return await logGrantUser(log);
       break;
     case 3:
       // for delete user
-      logDeleteUser(log);
+      return await logDeleteUser(log);
       break;
     case 11:
       // for create category
-      logCreateCategory(log);
+      return await logCreateCategory(log);
       break;
     case 12:
       // for update category
-      logUpdateCategory(log);
+      return await logUpdateCategory(log);
       break;
     case 13:
       // for update category [order]
-      logUpdateCategories(log);
+      return await logUpdateCategories(log);
       break;
     case 14:
       // for delete category
-      logDeleteCategory(log);
+      return await logDeleteCategory(log);
       break;
     case 21:
       // for create project
-      logCreateProject(log);
+      return await logCreateProject(log);
       break;
     case 22:
       // for update project
-      logUpdateProject(log);
+      return await logUpdateProject(log);
       break;
     case 23:
       // for update project order
-      logUpdateProjects(log);
+      return await logUpdateProjects(log);
       break;
     case 24:
       // for delete project
-      logDeleteProject(log);
+      return await logDeleteProject(log);
       break;
     default:
     // do nothing for default
@@ -108,7 +108,8 @@ async function logGrantUser(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logDeleteUser(log) {
@@ -125,7 +126,8 @@ async function logDeleteUser(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logCreateCategory(log) {
@@ -141,7 +143,8 @@ async function logCreateCategory(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logUpdateCategory(log) {
@@ -164,7 +167,8 @@ async function logUpdateCategory(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logUpdateCategories(log) {
@@ -184,7 +188,8 @@ async function logUpdateCategories(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logDeleteCategory(log) {
@@ -205,7 +210,8 @@ async function logDeleteCategory(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logCreateProject(log) {
@@ -222,7 +228,8 @@ async function logCreateProject(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logUpdateProject(log) {
@@ -245,7 +252,8 @@ async function logUpdateProject(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logUpdateProjects(log) {
@@ -265,7 +273,8 @@ async function logUpdateProjects(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
 
 async function logDeleteProject(log) {
@@ -282,5 +291,6 @@ async function logDeleteProject(log) {
     createTime: Date.now(),
     content   : content
   };
-  return db.Log.create(Log);
+  db.Log.create(Log);
+  return await content;
 }
