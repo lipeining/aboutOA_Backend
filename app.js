@@ -21,12 +21,27 @@ const db  = require('./models');
 
 var app = express();
 
+var RedisStore = require('connect-redis')(session);
+var store      = new RedisStore({
+  port: 6379,          // Redis port
+  host: 'redis',   // Redis host
+  pass: 'admin',
+  db  : 8
+});
+
 app.use(session({
-  secret           : 'about_oa',
-  resave           : true,
-  saveUninitialized: true,
-  cookie           : {maxAge: 6000000}//100 min
+  store : store,
+  secret: 'about_oa',
+  resave: false,
+  cookie: {maxAge: 600000}//10 min
 }));
+
+// app.use(session({
+//   secret           : 'about_oa',
+//   resave           : true,
+//   saveUninitialized: true,
+//   cookie           : {maxAge: 6000000}//100 min
+// }));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -56,11 +71,83 @@ var io     = require('socket.io')(server);
 
 var adminNamespace = io.of('/admin');
 
-const handleIO = require('./socket');
+// const handleIO = require('./socket');
 
-io.on('connection', handleIO.handleConnection);
+const Redis = require('ioredis');
+const redis = new Redis({
+  port    : 6379,          // Redis port
+  host    : 'redis',   // Redis host
+  family  : 4,           // 4 (IPv4) or 6 (IPv6)
+  password: 'admin',
+  db      : 8
+});
+
+io.on('connection', async function handleConnection(socket) {
+  // handle the connection and socket event in here
+  console.log('a new connection:');
+  console.log(socket.id);
+
+  socket.on('login', async function (data) {
+    // store in the `${user.id}-${user.name}-login`
+
+    let id        = data.id;
+    let name      = data.name;
+    let sessionId = data.sessionId;
+    console.log(`client emit login with data {id, name, sessionId}:${id}-${name}-${sessionId}`);
+    let userList = await redis.lrange(`${id}-${name}-login`, 0, -1) || [];
+    for (let i = 0; i < userList.length; i++) {
+      let user = JSON.parse(userList[i]) || {};
+      if (user['sessionId'] === sessionId) {
+        console.log(`client emit login find the session `);
+        user.socketId = socket.id;
+        await redis.lset(`${id}-${name}-login`, i, JSON.stringify(user));
+        break;
+      }
+    }
+    console.log(`client emit login end !`);
+    // here we can ltrim to limit login user!
+    // just hold two login user!
+    // await redis.ltrim(`${id}-${name}-login`, -2, -1);
+  });
+
+  socket.on('agreeLogin', async function (data) {
+    // update in the `${user.id}-${user.name}-login`
+    console.log('client emit agreeLogin with data {id, name, sessionId}');
+    let id        = data.id;
+    let name      = data.name;
+    let sessionId = data.sessionId;
+    let agree     = data.agree;
+    let userList  = await redis.lrange(`${id}-${name}-login`, 0, -1) || [];
+    for (let i = 0; i < userList.length; i++) {
+      let user = JSON.parse(userList[i]) || {};
+      if (user['sessionId'] === sessionId) {
+        if (agree) {
+          user.agree = true;
+          await redis.lset(`${id}-${name}-login`, i, JSON.stringify(user));
+          // tell the waiting user
+          io.sockets.connected[user.socketId].emit('agree', {agree: true, user: user.userInfo});
+        } else {
+          await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(user));
+          // delete the session
+          store.destroy(user['sessionId'], function (err) {
+            if (err) {
+              console.log('agree login destroy session error');
+              console.log(err);
+            } else {
+              console.log('agree login destroy session done');
+            }
+          });
+          // tell the waiting user
+          io.sockets.connected[user.socketId].emit('agree', {agree: false, user: {}});
+        }
+        break;
+      }
+    }
+  });
+});
 
 app.use(function (req, res, next) {
+  res.store          = store;
   res.io             = io;
   res.adminNamespace = adminNamespace;
   next();

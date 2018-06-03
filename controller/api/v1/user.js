@@ -56,7 +56,15 @@ async function getUser(req, res, next) {
     id: parseInt(req.query.id) || 0
   };
   try {
-    let user = userService.getUser(options);
+    let user          = await userService.getUser(options);
+    // just test for the session and redis !
+    let userRedisList = await redis.lrange(`${user.id}-${user.name}-login`, 0, -1) || [];
+    console.log(`userRedisList`);
+    console.log(userRedisList);
+    res.store.all(function (err, sessions) {
+      console.log('in store all callback ');
+      console.log(sessions);
+    });
     return res.json({Message: {user: user}, code: 0});
   } catch (err) {
     console.log(err);
@@ -110,7 +118,53 @@ async function login(req, res, next) {
           fse.remove(req.session.captchaPath);
           req.session.captchaToken = null;
           req.session.captchaPath  = null;
-          return res.json({Message: {user: user}, code: 0});
+
+          // about login in two place! use res.store and the method in callback
+          // console.log(res.store);
+          res.store.all(function (err, sessions) {
+            console.log('in store all callback login');
+            console.log(sessions);
+          });
+          // how to get the socketId, on the socket.io login event handleFunction
+          let loginUser = {
+            userInfo : user,
+            sessionId: req.session.id,
+            time     : Date.now(),
+            ip       : req.ip
+            // socketId : socketId
+            // socketId : ''
+            // agree : false/true which need the login client to agree
+          };
+
+          let userRedisList = await redis.lrange(`${user.id}-${user.name}-login`, 0, -1) || [];
+          console.log(`userRedisList`);
+          console.log(userRedisList);
+          if (userRedisList.length !== 0) {
+            // send message to the login client
+            for (let i = 0; i < userRedisList.length; i++) {
+              let emitUser = JSON.parse(userRedisList[i]);
+              if (res.io.sockets.connected[emitUser['socketId']]) {
+                res.io.sockets.connected[emitUser['socketId']].emit('diffLogin', {
+                  user: user, ip: req.ip, sessionId: req.session.id
+                });
+              }
+            }
+            // for the current user.just return need agree
+            loginUser['agree'] = false;
+            await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
+            return res.json({
+              Message: {
+                err: {
+                  sessionId: req.session.id,
+                  diffUser : {id: user.id, name: user.name}
+                }
+              }, code: 4
+            });
+          } else {
+            loginUser['agree'] = true;
+            await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
+            return res.json({Message: {user: user, sessionId: req.session.id}, code: 0});
+          }
         } else {
           // wrong password should count++ ,check if >= 5?
 
@@ -238,15 +292,16 @@ async function grantUser(req, res, next) {
       let logContent = await logService.insertLog(log);
       // await ioService.sendLog(logContent);
       // console.log(res.adminNamespace);
-      // res.io.sockets.emit('newLog', logContent);
-      res.adminNamespace.emit('adminLog', logContent);
+      res.io.sockets.emit('newLog', logContent);
+      // no broadcast method in namespace
+      // res.adminNamespace.emit('adminLog', logContent);
       return res.json({code: 0});
     } else {
       log['success'] = 0;
       let logContent = await logService.insertLog(log);
       // await ioService.sendLog(logContent);
-      // res.io.sockets.emit('newLog', logContent);
-      res.adminNamespace.emit('adminLog', logContent);
+      res.io.sockets.emit('newLog', logContent);
+      // res.adminNamespace.emit('adminLog', logContent);
       return res.json({Message: {err: 'wrong input'}, code: 4});
     }
   } catch (err) {
@@ -287,7 +342,24 @@ async function delUser(req, res, next) {
 }
 
 async function logout(req, res, next) {
-  req.session.user = null;
+
+  let userRedisList = await redis.lrange(`${req.session.user.id}-${req.session.user.name}-login`, 0, -1) || [];
+  if (userRedisList.length !== 0) {
+    // delete the session store user
+    for (let i = 0; i < userRedisList.length; i++) {
+      let user = JSON.parse(userRedisList[i]);
+      if (user.sessionId === req.session.id) {
+        await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(user));
+      }
+    }
+  }
+  req.session.destroy(function (err) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log('destroy session success');
+    }
+  });
   return res.json({code: 0});
 }
 
