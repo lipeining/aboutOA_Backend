@@ -125,7 +125,8 @@ io.on('connection', async function handleConnection(socket) {
           user.agree = true;
           await redis.lset(`${id}-${name}-login`, i, JSON.stringify(user));
           // tell the waiting user
-          io.sockets.connected[user.socketId].emit('agree', {agree: true, user: user.userInfo});
+          let userInfo = await redis.get(`${id}-${name}-userInfo`);
+          io.sockets.connected[user.socketId].emit('agree', {agree: true, user: JSON.parse(userInfo) || {}});
         } else {
           await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(user));
           // delete the session

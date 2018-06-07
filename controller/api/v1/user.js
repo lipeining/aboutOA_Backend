@@ -127,7 +127,6 @@ async function login(req, res, next) {
           });
           // how to get the socketId, on the socket.io login event handleFunction
           let loginUser = {
-            userInfo : user,
             sessionId: req.session.id,
             time     : Date.now(),
             ip       : req.ip
@@ -143,7 +142,8 @@ async function login(req, res, next) {
             // send message to the login client
             for (let i = 0; i < userRedisList.length; i++) {
               let emitUser = JSON.parse(userRedisList[i]);
-              if (res.io.sockets.connected[emitUser['socketId']]) {
+              // should we check the session?
+              if (res.io.sockets.connected[emitUser['socketId']] && emitUser['agree']) {
                 res.io.sockets.connected[emitUser['socketId']].emit('diffLogin', {
                   user: user, ip: req.ip, sessionId: req.session.id
                 });
@@ -152,6 +152,9 @@ async function login(req, res, next) {
             // for the current user.just return need agree
             loginUser['agree'] = false;
             await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
+            await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
+            // should we expire the list timeout?
+            await redis.expire(`${user.id}-${user.name}-login`, 3600);
             return res.json({
               Message: {
                 err: {
@@ -163,6 +166,8 @@ async function login(req, res, next) {
           } else {
             loginUser['agree'] = true;
             await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
+            await redis.expire(`${user.id}-${user.name}-login`, 3600);
+            await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
             return res.json({Message: {user: user, sessionId: req.session.id}, code: 0});
           }
         } else {
@@ -218,8 +223,20 @@ async function reg(req, res, next) {
         // set timeout to be 8 hour?60*60*8
         // await redis.set(ipReg, ipRegCnt + 1, 'EX', 60 * 60 * 8);
         await redis.set(ipReg, ipRegCnt + 1, 'EX', 60);
-        user.password    = '';
-        req.session.user = user;
+        user.password      = '';
+        req.session.user   = user;
+        let loginUser      = {
+          sessionId: req.session.id,
+          time     : Date.now(),
+          ip       : req.ip
+          // socketId : socketId
+          // socketId : ''
+          // agree : false/true which need the login client to agree
+        };
+        loginUser['agree'] = true;
+        await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
+        await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
+        await redis.expire(`${user.id}-${user.name}-login`, 3600);
         return res.json({Message: {user: user}, code: 0});
       } else {
         return res.json({Message: {err: 'already created'}, code: 4});
@@ -342,17 +359,18 @@ async function delUser(req, res, next) {
 }
 
 async function logout(req, res, next) {
-
-  let userRedisList = await redis.lrange(`${req.session.user.id}-${req.session.user.name}-login`, 0, -1) || [];
+  let user          = req.session.user;
+  let userRedisList = await redis.lrange(`${user.id}-${user.name}-login`, 0, -1) || [];
   if (userRedisList.length !== 0) {
     // delete the session store user
     for (let i = 0; i < userRedisList.length; i++) {
       let user = JSON.parse(userRedisList[i]);
       if (user.sessionId === req.session.id) {
-        await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(user));
+        await redis.lrem(`${user.id}-${user.name}-login`, 0, JSON.stringify(user));
       }
     }
   }
+  await redis.del(`${user.id}-${user.name}-userInfo`);
   req.session.destroy(function (err) {
     if (err) {
       console.log(err);
