@@ -10,6 +10,8 @@ mainly, it just provide API to [aboutOA_Vue](https://github.com/lipeining/aboutO
 git clone the project
 npm install
 // cnpm install
+// and more, you can git checkout issue-socketio which contains socketio 
+// and express-validator!
 // you can use docker to set up the project, or without it!
 ```
 
