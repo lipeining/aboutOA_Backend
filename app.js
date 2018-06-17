@@ -128,7 +128,9 @@ io.on('connection', async function handleConnection(socket) {
           let userInfo = await redis.get(`${id}-${name}-userInfo`);
           io.sockets.connected[user.socketId].emit('agree', {agree: true, user: JSON.parse(userInfo) || {}});
         } else {
-          await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(user));
+          user.agree = false;
+          let rem = await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(user));
+          console.log(`logout find the user index in the list rem return count:${rem}`);
           // delete the session
           store.destroy(user['sessionId'], function (err) {
             if (err) {

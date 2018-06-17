@@ -7,6 +7,8 @@ const path       = require('path');
 const fse        = require('fs-extra');
 const gm         = require('gm');
 
+const {validationResult} = require('express-validator/check');
+
 module.exports = {
   getProjects,
   getProject,
@@ -20,6 +22,11 @@ module.exports = {
 };
 
 async function getProjects(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let pageIndex  = parseInt(req.query.pageIndex) || 1;
   let pageSize   = parseInt(req.query.pageSize) || 20;
   let categoryId = parseInt(req.query.categoryId) || 0;
@@ -41,6 +48,11 @@ async function getProjects(req, res, next) {
 }
 
 async function getProjectNames(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let options = {
     categoryId: parseInt(req.query.categoryId) || 0
   };
@@ -54,6 +66,11 @@ async function getProjectNames(req, res, next) {
 }
 
 async function getProject(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let options = {
     id: parseInt(req.query.id) || 0
   };
@@ -67,6 +84,11 @@ async function getProject(req, res, next) {
 }
 
 async function createPro(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let newPro = {
     name      : req.body.name || '',
     intro     : req.body.intro || '',
@@ -101,6 +123,11 @@ async function createPro(req, res, next) {
 
 // req.body.project
 async function updatePro(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   // handle the logo and QR code delete the unused !
   let options = JSON.parse(req.body.project) || {};
   try {
@@ -172,6 +199,11 @@ async function updateProjects(req, res, next) {
 }
 
 async function delPro(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let project = {
     id: parseInt(req.body.id) || 0
   };

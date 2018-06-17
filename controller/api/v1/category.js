@@ -3,6 +3,8 @@ const logService  = require('../../../services/log');
 const fse         = require('fs-extra');
 const path        = require('path');
 
+const {validationResult} = require('express-validator/check');
+
 module.exports = {
   getCategories,
   getCategoryNames,
@@ -15,6 +17,11 @@ module.exports = {
 };
 
 async function getCategories(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let pageIndex = parseInt(req.query.pageIndex) || 1;
   let pageSize  = parseInt(req.query.pageSize) || 10;
   let options   = {
@@ -44,6 +51,11 @@ async function getCategoryNames(req, res, next) {
 }
 
 async function getCategory(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let options = {
     id: parseInt(req.query.id) || 0
   };
@@ -57,34 +69,36 @@ async function getCategory(req, res, next) {
 }
 
 async function createCate(req, res, next) {
-  if (!req.body.name || !req.body.intro) {
-    return res.json({code: 4, Message: {err: 'error input'}});
-  } else {
-    let newCate = {
-      name : req.body.name || '',
-      intro: req.body.intro || ''
-    };
-    try {
-      let [category, created] = await cateService.createCate(newCate);
-      let log                 = {
-        admin   : req.session.user,
-        category: category,
-        type    : 11
-      };
-      if (created) {
-        log['success'] = 1;
-        logService.insertLog(log);
-        return res.json({Message: {category: category}, code: 0});
-      } else {
-        log['success'] = 0;
-        logService.insertLog(log);
-        return res.json({Message: {err: 'name already used'}, code: 4});
-      }
-    } catch (err) {
-      console.log(err);
-      return res.json({Message: {err: err}, code: 4});
-    }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
   }
+
+  let newCate = {
+    name : req.body.name || '',
+    intro: req.body.intro || ''
+  };
+  try {
+    let [category, created] = await cateService.createCate(newCate);
+    let log                 = {
+      admin   : req.session.user,
+      category: category,
+      type    : 11
+    };
+    if (created) {
+      log['success'] = 1;
+      logService.insertLog(log);
+      return res.json({Message: {category: category}, code: 0});
+    } else {
+      log['success'] = 0;
+      logService.insertLog(log);
+      return res.json({Message: {err: 'name already used'}, code: 4});
+    }
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+
 }
 
 async function updateCate(req, res, next) {
@@ -164,6 +178,11 @@ async function updateCategories(req, res, next) {
 }
 
 async function delCate(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let options = {
     id: parseInt(req.body.id) || 0
   };

@@ -9,6 +9,7 @@ const path        = require('path');
 // BBPromise.promisifyAll(redis.RedisClient.prototype);
 
 // const ioService = require('../../../services/io');
+const {validationResult} = require('express-validator/check');
 
 const _     = require('lodash');
 const Redis = require('ioredis');
@@ -35,6 +36,10 @@ module.exports = {
 };
 
 async function getUsers(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let pageIndex = parseInt(req.query.pageIndex) || 1;
   let pageSize  = parseInt(req.query.pageSize) || 10;
   let options   = {
@@ -52,6 +57,10 @@ async function getUsers(req, res, next) {
 }
 
 async function getUser(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let options = {
     id: parseInt(req.query.id) || 0
   };
@@ -86,6 +95,11 @@ async function login(req, res, next) {
   //   });
   //   await redis.set("users", JSON.stringify(users), "EX", "1800");
   // }
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
 
   let options = {
     password: req.body.password || '',
@@ -199,6 +213,11 @@ async function login(req, res, next) {
 }
 
 async function reg(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   console.log(`request ip:${req.ip}`);
   console.log(`request ips:${req.ips}`);
   let ipReg    = `${req.ip}-reg`;
@@ -249,6 +268,11 @@ async function reg(req, res, next) {
 }
 
 async function makeUsers(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   // api/v1/makeUsers?code=112358wow&num=1000
   if (req.query.code !== '112358wow') {
     return res.json({Message: {err: 'err code'}, code: 4});
@@ -269,6 +293,11 @@ async function makeUsers(req, res, next) {
 }
 
 async function update(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let user = {
     id   : parseInt(req.body.id) || 0,
     phone: parseInt(req.body.phone) || 0,
@@ -291,6 +320,11 @@ async function update(req, res, next) {
 }
 
 async function grantUser(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let options = {
     id        : parseInt(req.body.id) || 0,
     permission: parseInt(req.body.permission) || 0
@@ -328,6 +362,11 @@ async function grantUser(req, res, next) {
 }
 
 async function delUser(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+
   let options = {
     id: parseInt(req.body.id) || 0
   };
@@ -364,9 +403,10 @@ async function logout(req, res, next) {
   if (userRedisList.length !== 0) {
     // delete the session store user
     for (let i = 0; i < userRedisList.length; i++) {
-      let user = JSON.parse(userRedisList[i]);
+      let user = JSON.parse(userRedisList[i]) || {};
       if (user.sessionId === req.session.id) {
-        await redis.lrem(`${user.id}-${user.name}-login`, 0, JSON.stringify(user));
+        let rem = await redis.lrem(`${user.id}-${user.name}-login`, 1, JSON.stringify(user));
+        console.log(`logout find the user index in the list rem return count:${rem}`);
       }
     }
   }
