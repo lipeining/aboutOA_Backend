@@ -22,6 +22,73 @@ const redis = require('../../../redis');
 //   db      : 8
 // });
 
+const Scheduler = require('redis-scheduler');
+var scheduler   = new Scheduler({
+  host    : 'redis',
+  port    : 6379,
+  password: 'admin',
+  db      : 8
+});
+
+// define the session destroyed event handler to the scheduler!
+async function sessionDestroyedHandler(err, key) {
+  // we should lrem the item from ${id}-${name}-login list
+  if (err) {
+    console.error(err);
+  } else {
+    // keyword about ${id}:${name}:${sessionId}
+    console.log('run callback for keyword: ', key);
+    // split the id and name and sessionId!
+    let [id, name, sessionId] = key.split(':');
+    // check the sessionId ttl by
+
+    let pttl = await redis.pttl(`sess:${sessionId}`);
+    pttl     = parseInt(pttl) || -2;
+    if (pttl > 60000) {
+      // the pttl is millisecond! it would reschedule while pttl > 60000 1min
+      // the session is not destroyed so reschedule
+      // Change expire time to pttl ms
+      scheduler.reschedule({key: key, expire: pttl}, function (err) {
+        if (err) {
+          console.error(err);
+        } else {
+          console.log(`the session is rescheduled to be run in ${pttl} ms`);
+        }
+      });
+    } else {
+      // the ttl is -2 or -1 , just lrem the item from the list!
+      let userRedisList = await redis.lrange(`${id}-${name}-login`, 0, -1) || [];
+      if (userRedisList.length !== 0) {
+        // delete the session store user
+        for (let i = 0; i < userRedisList.length; i++) {
+          let userI = JSON.parse(userRedisList[i]) || {};
+          if (userI.sessionId === sessionId) {
+            console.log(userI);
+            console.log(userI.agree);
+            let rem = await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(userI));
+            console.log(`session destroyed callback  find the user index in the list rem return count:${rem}`);
+          }
+        }
+      }
+      await redis.del(`${id}-${name}-userInfo`);
+    }
+    // can we get the key content? no we can't
+    // redis.get(key)
+    //   .then(function (session) {
+    //     console.log('the session is destroyed:');
+    //     console.log(session);
+    //   })
+    //   .catch(function (err) {
+    //     console.log('the session is destroyed with error:');
+    //     console.error(err);
+    //   });
+
+    // should not end the scheduler! which is used for another client!
+    // Delete all handlers and close connection to Redis
+    // scheduler.end();
+  }
+}
+
 module.exports = {
   makeUsers,
   getUsers,
@@ -133,6 +200,37 @@ async function login(req, res, next) {
           fse.remove(req.session.captchaPath);
           req.session.captchaToken = null;
           req.session.captchaPath  = null;
+
+          // await redis.set('keyword', JSON.stringify(user));
+          // just schedule the req.session.id
+          // set a keyword about ${id}:${name}:${sessionId}
+          // and the keyword would be later than the sess:-${req.session.id}
+          let keyword = `${user.id}:${user.name}:${req.session.id}`;
+          scheduler.schedule({
+            key    : keyword,
+            // key    : `sess:${req.session.id}`,
+            expire : 600000, // should be equal to express-session-cookie-maxAge!
+            // expire : 30000, // should be equal to express-session-cookie-maxAge!
+            handler: sessionDestroyedHandler
+          }, function (err) {
+            if (err) {
+              console.error(err);
+            } else {
+              console.log('scheduled successfully!');
+            }
+          });
+          // Add a handler for req.session.id
+          // scheduler.addHandler({
+          //   key    : `keyword`,
+          //   // key    : `sess:${req.session.id}`,
+          //   handler: async function (err, key) {
+          //     console.log('run another callback:' + key);
+          //     let session = await redis.get(key);
+          //     console.log('add handler:');
+          //     // get null
+          //     console.log(session);
+          //   }
+          // });
 
           // about login in two place! use res.store and the method in callback
           // console.log(res.store);
