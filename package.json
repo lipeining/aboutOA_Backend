@@ -23,6 +23,7 @@
     "mocha": "^5.1.1",
     "morgan": "~1.9.0",
     "mysql2": "^1.5.3",
+    "redis-scheduler": "^1.0.0",
     "sequelize": "^4.37.7",
     "socket.io": "^2.1.1",
     "trek-captcha": "^0.4.0"

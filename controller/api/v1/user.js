@@ -12,14 +12,15 @@ const path        = require('path');
 const {validationResult} = require('express-validator/check');
 
 const _     = require('lodash');
-const Redis = require('ioredis');
-const redis = new Redis({
-  port    : 6379,          // Redis port
-  host    : 'redis',   // Redis host
-  family  : 4,           // 4 (IPv4) or 6 (IPv6)
-  password: 'admin',
-  db      : 8
-});
+const redis = require('../../../redis');
+// const Redis = require('ioredis');
+// const redis = new Redis({
+//   port    : 6379,          // Redis port
+//   host    : 'redis',   // Redis host
+//   family  : 4,           // 4 (IPv4) or 6 (IPv6)
+//   password: 'admin',
+//   db      : 8
+// });
 
 module.exports = {
   makeUsers,
@@ -403,9 +404,11 @@ async function logout(req, res, next) {
   if (userRedisList.length !== 0) {
     // delete the session store user
     for (let i = 0; i < userRedisList.length; i++) {
-      let user = JSON.parse(userRedisList[i]) || {};
-      if (user.sessionId === req.session.id) {
-        let rem = await redis.lrem(`${user.id}-${user.name}-login`, 1, JSON.stringify(user));
+      let userI = JSON.parse(userRedisList[i]) || {};
+      if (userI.sessionId === req.session.id) {
+        console.log(userI);
+        console.log(userI.agree);
+        let rem = await redis.lrem(`${user.id}-${user.name}-login`, 0, JSON.stringify(userI));
         console.log(`logout find the user index in the list rem return count:${rem}`);
       }
     }

@@ -73,14 +73,15 @@ var adminNamespace = io.of('/admin');
 
 // const handleIO = require('./socket');
 
-const Redis = require('ioredis');
-const redis = new Redis({
-  port    : 6379,          // Redis port
-  host    : 'redis',   // Redis host
-  family  : 4,           // 4 (IPv4) or 6 (IPv6)
-  password: 'admin',
-  db      : 8
-});
+// const Redis = require('ioredis');
+// const redis = new Redis({
+//   port    : 6379,          // Redis port
+//   host    : 'redis',   // Redis host
+//   family  : 4,           // 4 (IPv4) or 6 (IPv6)
+//   password: 'admin',
+//   db      : 8
+// });
+const redis = require('./redis');
 
 io.on('connection', async function handleConnection(socket) {
   // handle the connection and socket event in here
@@ -121,6 +122,8 @@ io.on('connection', async function handleConnection(socket) {
     for (let i = 0; i < userList.length; i++) {
       let user = JSON.parse(userList[i]) || {};
       if (user['sessionId'] === sessionId) {
+        console.log(user);
+        console.log(user.agree);
         if (agree) {
           user.agree = true;
           await redis.lset(`${id}-${name}-login`, i, JSON.stringify(user));
@@ -130,7 +133,7 @@ io.on('connection', async function handleConnection(socket) {
         } else {
           user.agree = false;
           let rem = await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(user));
-          console.log(`logout find the user index in the list rem return count:${rem}`);
+          console.log(`socket agree find the user index in the list rem return count:${rem}`);
           // delete the session
           store.destroy(user['sessionId'], function (err) {
             if (err) {
