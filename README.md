@@ -22,7 +22,7 @@ by default, the mysql server should be mysql:5.7 . take a look at /config/config
 you can set your own config<br>
 for the redis service , take a look at redis.conf ,about the requirepass.the version
 should be at least 3.0.<br>
-
+and more, you should change the host into "localhost"!
 ``` bash
 // before start the sevice, make sure you have set the config of mysql and redis 
 // create a database named aboutoa, use the followed sql.
