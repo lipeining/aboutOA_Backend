@@ -1,9 +1,11 @@
-const userService = require('../../../services/user');
-const logService  = require('../../../services/log');
-const captcha     = require('trek-captcha');
-const fse         = require('fs-extra');
-const fs          = require('fs');
-const path        = require('path');
+const userService  = require('../../../services/user');
+const emailService = require('../../../services/email');
+const logService   = require('../../../services/log');
+const captcha      = require('trek-captcha');
+const fse          = require('fs-extra');
+const fs           = require('fs');
+const path         = require('path');
+const uuidv4       = require('uuid/v4');
 // const redis     = require("redis");
 // const BBPromise = require("bluebird");
 // BBPromise.promisifyAll(redis.RedisClient.prototype);
@@ -90,6 +92,9 @@ async function sessionDestroyedHandler(err, key) {
 }
 
 module.exports = {
+  findPass,
+  findPassVerify,
+  resetPass,
   makeUsers,
   getUsers,
   getUser,
@@ -133,16 +138,110 @@ async function getUser(req, res, next) {
     id: parseInt(req.query.id) || 0
   };
   try {
-    let user          = await userService.getUser(options);
+    let user = await userService.getUser(options);
     // just test for the session and redis !
-    let userRedisList = await redis.lrange(`${user.id}-${user.name}-login`, 0, -1) || [];
-    console.log(`userRedisList`);
-    console.log(userRedisList);
-    res.store.all(function (err, sessions) {
-      console.log('in store all callback ');
-      console.log(sessions);
-    });
+    // let userRedisList = await redis.lrange(`${user.id}-${user.name}-login`, 0, -1) || [];
+    // console.log(`userRedisList`);
+    // console.log(userRedisList);
+    // res.store.all(function (err, sessions) {
+    //   console.log('in store all callback ');
+    //   console.log(sessions);
+    // });
     return res.json({Message: {user: user}, code: 0});
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+}
+
+async function findPass(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+  let options = {
+    email: req.body.email || '',
+    name : req.body.name || ''
+  };
+  try {
+    // 1.ensure the user is exists
+    // 2.generate a verify token in redis which would be kept only 10min
+    // and send email to the email with the content!
+    let user = await userService.getUser(options);
+    if (user) {
+      let token = uuidv4();
+      await redis.set(token, JSON.stringify(user), 'EX', 600);//10 minute
+      // let verify     = `http://aboutoa.com/resetpass?verify=${token}`;
+      let verify     = `http://localhost:8080/resetpass?verify=${token}`;
+      let content    = 'you are trying to reset your account(<' + user.name + '> in http://aboutoa.com ) \
+      password through email. </br> please click the follow link to reset your password, please reset it in 10 minute\
+       any question ,please concat us duoyi@henahoji.com.</br> \
+      <a href=' + verify + '>reset password</a>';
+      let previewUrl = await emailService.sendResetPassMail(options.email, content);
+      console.log(`Preview URL:${previewUrl}`);
+      return res.json({Message: {previewUrl: previewUrl}, code: 0});
+    } else {
+      return res.json({Message: {err: 'no such user with the email!'}, code: 4});
+    }
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+}
+
+async function findPassVerify(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+  let options = {
+    verify: req.body.verify || ''
+  };
+  try {
+    // 1.get the verify token in redis
+    // 2.return the user info!
+    let user = await redis.get(options.verify);
+    user     = JSON.parse(user) || {};
+    if (user.id) {
+      return res.json({Message: {id: user.id}, code: 0});
+    } else {
+      return res.json({Message: {err: 'the verify token is out of time'}, code: 4});
+    }
+  } catch (err) {
+    console.log(err);
+    return res.json({Message: {err: err}, code: 4});
+  }
+}
+
+async function resetPass(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
+  let options = {
+    id      : parseInt(req.body.id) || 0,
+    password: req.body.password || ''
+  };
+  let verify  = req.body.verify;
+  try {
+    // 1.ensure the user is exists and the token is right
+    // 2.reset the password by update and clear the token !
+
+    let user = await redis.get(verify);
+    user     = JSON.parse(user) || {};
+    if (user.id !== options.id) {
+      // the user is not the reset password user
+      // reject it!
+      return res.json({Message: {err: 'the verify token is not right to the user'}, code: 4});
+    } else {
+      let cnt = await userService.update(options);
+      if (cnt) {
+        await redis.del(verify);
+        return res.json({Message: {info: 'reset password success'}, code: 0});
+      } else {
+        return res.json({Message: {err: 'no such user with the email!'}, code: 4});
+      }
+    }
   } catch (err) {
     console.log(err);
     return res.json({Message: {err: err}, code: 4});

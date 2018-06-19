@@ -9,12 +9,12 @@ const {oneOf, check, checkSchema} = require('express-validator/check');
 router.get('/users', auth.checkLogin, auth.checkAdmin,
   checkSchema({
     pageIndex: {
-      in    : ['query'],
-      toInt : true
+      in   : ['query'],
+      toInt: true
     },
     pageSize : {
-      in    : ['query'],
-      toInt : true
+      in   : ['query'],
+      toInt: true
     },
   }), userCtrl.getUsers);
 
@@ -25,11 +25,56 @@ router.get('/users', auth.checkLogin, auth.checkAdmin,
 router.get('/user', auth.checkLogin, auth.checkAdmin,
   checkSchema({
     id: {
-      in    : ['query'],
-      isInt : true,
-      toInt : true
+      in   : ['query'],
+      isInt: true,
+      toInt: true
     }
   }), userCtrl.getUser);
+
+/* find password return verify*/
+router.post('/findpass', auth.checkNotLogin,
+  checkSchema({
+    name : {
+      in: ['body']
+    },
+    email: {
+      in     : ['body'],
+      isEmail: true
+    }
+  }), userCtrl.findPass);
+
+/* reset password check verify*/
+router.post('/findpassverify', auth.checkNotLogin,
+  checkSchema({
+    verify: {
+      in: ['body']
+    }
+  }), userCtrl.findPassVerify);
+
+/* reset password */
+router.put('/password', auth.checkNotLogin,
+  checkSchema({
+    id      : {
+      in   : ['body'],
+      isInt: true,
+      toInt: true
+    },
+    password: {
+      in      : ['body'],
+      password: {
+        in      : ['body'],
+        isLength: {
+          errorMessage: 'Password should be salt sha256',
+          // Multiple options would be expressed as an array
+          options     : {min: 64, max: 256}
+        }
+      }
+    },
+    verify  : {
+      in: ['body']
+      // should we check 8-4-4-4-12?
+    }
+  }), userCtrl.resetPass);
 
 // login
 router.post('/login', auth.checkNotLogin,

@@ -52,7 +52,7 @@ async function getUsers(options) {
 
 async function getUser(options) {
   return await db.User.findOne({
-    where     : {id: options.id},
+    where     : options,
     attributes: ['id', 'name', 'email', 'phone', 'permission', 'intro']
   });
 }
