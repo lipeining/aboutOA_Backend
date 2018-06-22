@@ -22,11 +22,13 @@ async function getCategories(req, res, next) {
     return res.status(422).json({Message: {err: errors.array()}, code: 4});
   }
 
-  let pageIndex = parseInt(req.query.pageIndex) || 1;
-  let pageSize  = parseInt(req.query.pageSize) || 10;
-  let options   = {
-    pageIndex: pageIndex,
-    pageSize : pageSize
+  let pageIndex  = parseInt(req.query.pageIndex) || 1;
+  let pageSize   = parseInt(req.query.pageSize) || 10;
+  let getProject = parseInt(req.query.getProject) || 0;
+  let options    = {
+    pageIndex : pageIndex,
+    pageSize  : pageSize,
+    getProject: getProject
   };
   if (req.query.search) {
     options['search'] = req.query.search;

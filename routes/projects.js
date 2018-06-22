@@ -43,7 +43,7 @@ router.post('/project', auth.checkLogin, auth.checkAdmin,
         in    : ['body'],
         custom: {
           options: (value, {req, location, path}) => {
-            return /^\/images\/QRCode\/\w+$/.test(value);
+            return /^\/images\/QRCode\/\w+/.test(value);
           }
         },
       }
@@ -86,10 +86,15 @@ router.post('/project', auth.checkLogin, auth.checkAdmin,
       toInt: true
     },
     segment   : {
-      in   : ['body'],
-      isIn : ['0', '1', '2', '3', '4', '5', '6', '7'],
-      isInt: true,
-      toInt: true
+      in    : ['body'],
+      isInt : true,
+      toInt : true,
+      custom: {
+        options: (value, {req, location, path}) => {
+          let segment = parseInt(value) || -1;
+          return segment >= 0 && segment <= 7;
+        }
+      }
     }
   }), proCtrl.createPro);
 
@@ -101,7 +106,7 @@ router.put('/project', auth.checkLogin, auth.checkAdmin,
         in    : ['body'],
         custom: {
           options: (value, {req, location, path}) => {
-            return /^\/images\/QRCode\/\w+$/.test(value);
+            return /^\/images\/QRCode\/\w+/.test(value);
           }
         },
       }
@@ -139,10 +144,15 @@ router.put('/project', auth.checkLogin, auth.checkAdmin,
       }
     },
     segment: {
-      in   : ['body'],
-      isIn : ['0', '1', '2', '3', '4', '5', '6', '7'],
-      isInt: true,
-      toInt: true
+      in    : ['body'],
+      custom: {
+        options: (value, {req, location, path}) => {
+          let segment = parseInt(value) || -1;
+          return segment >= 0 && segment <= 7;
+        }
+      },
+      isInt : true,
+      toInt : true
     }
   }), proCtrl.updatePro);
 

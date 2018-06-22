@@ -46,17 +46,21 @@ async function getCategories(options) {
   // });
   // User.findAll({ include:[ Player ], order:[[Player, 'id', DESC]]});
   // order:[[sequelize.col('player.playerLevel.level'), DESC]]
-
-  return await db.Category.findAndCountAll({
+  let find = {
     attributes: ['id', 'name', 'order', 'intro'],
-    // includes  : [{
-    //   model: db.Project,
-    //   where:wherePro
-    // }],
     offset    : (options.pageIndex - 1) * options.pageSize,
     limit     : options.pageSize,
     order     : [["order", "ASC"]]
-  });
+  };
+  if (options.getProject) {
+    find['include'] = [{
+      model   : db.Project,
+      where   : wherePro,
+      required: false
+    }];
+  }
+
+  return await db.Category.findAndCountAll(find);
 }
 
 async function getCategoryNames() {

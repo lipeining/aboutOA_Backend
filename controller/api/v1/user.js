@@ -308,7 +308,7 @@ async function login(req, res, next) {
           scheduler.schedule({
             key    : keyword,
             // key    : `sess:${req.session.id}`,
-            expire : 600000, // should be equal to express-session-cookie-maxAge!
+            expire : 6000000, // should be equal to express-session-cookie-maxAge!
             // expire : 30000, // should be equal to express-session-cookie-maxAge!
             handler: sessionDestroyedHandler
           }, function (err) {
@@ -333,10 +333,10 @@ async function login(req, res, next) {
 
           // about login in two place! use res.store and the method in callback
           // console.log(res.store);
-          res.store.all(function (err, sessions) {
-            console.log('in store all callback login');
-            console.log(sessions);
-          });
+          // res.store.all(function (err, sessions) {
+          //   console.log('in store all callback login');
+          //   console.log(sessions);
+          // });
           // how to get the socketId, on the socket.io login event handleFunction
           let loginUser = {
             sessionId: req.session.id,
@@ -348,8 +348,8 @@ async function login(req, res, next) {
           };
 
           let userRedisList = await redis.lrange(`${user.id}-${user.name}-login`, 0, -1) || [];
-          console.log(`userRedisList`);
-          console.log(userRedisList);
+          // console.log(`userRedisList`);
+          // console.log(userRedisList);
           if (userRedisList.length !== 0) {
             // send message to the login client
             for (let i = 0; i < userRedisList.length; i++) {
@@ -365,8 +365,8 @@ async function login(req, res, next) {
             loginUser['agree'] = false;
             await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
             await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
-            // should we expire the list timeout?
-            await redis.expire(`${user.id}-${user.name}-login`, 3600);
+            // should we expire the list timeout? with reschedule it's useless now!
+            // await redis.expire(`${user.id}-${user.name}-login`, 3600);
             return res.json({
               Message: {
                 err: {
@@ -378,7 +378,7 @@ async function login(req, res, next) {
           } else {
             loginUser['agree'] = true;
             await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
-            await redis.expire(`${user.id}-${user.name}-login`, 3600);
+            // await redis.expire(`${user.id}-${user.name}-login`, 3600);
             await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
             return res.json({Message: {user: user, sessionId: req.session.id}, code: 0});
           }
@@ -528,7 +528,7 @@ async function grantUser(req, res, next) {
     permission: parseInt(req.body.permission) || 0
   };
   try {
-    let user  = await userService.getUser(options);
+    let user  = await userService.getUser({id: options.id});
     let count = await userService.grantUser(options);
     let log   = {
       admin  : req.session.user,

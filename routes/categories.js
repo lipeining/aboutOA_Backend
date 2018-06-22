@@ -9,11 +9,15 @@ const {oneOf, check, checkSchema} = require('express-validator/check');
 // router.get('/categories', cateCtrl.getCategories);
 router.get('/categories', auth.checkLogin,
   checkSchema({
-    pageIndex: {
+    pageIndex : {
       in   : ['query'],
       toInt: true
     },
-    pageSize : {
+    pageSize  : {
+      in   : ['query'],
+      toInt: true
+    },
+    getProject: {
       in   : ['query'],
       toInt: true
     }

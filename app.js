@@ -33,7 +33,7 @@ app.use(session({
   store : store,
   secret: 'about_oa',
   resave: false,
-  cookie: {maxAge: 600000}//10 min
+  cookie: {maxAge: 6000000}//100 min
   // cookie: {maxAge: 30000}//10 min test for session reschedule!
 }));
 

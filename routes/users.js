@@ -207,10 +207,16 @@ router.post('/grant', auth.checkLogin, auth.checkAdmin,
       toInt: true
     },
     permission: {
-      in   : ['body'],
-      isIn : ['0', '90'],
-      isInt: true,
-      toInt: true
+      in    : ['body'],
+      isInt : true,
+      toInt : true,
+      custom: {
+        options: (value, {req, location, path}) => {
+          let permission = parseInt(value);
+          return (permission === 90) || (permission === 0);
+          // return [0, 90].indexOf(parseInt(value)) !== -1;
+        }
+      }
     }
   }), userCtrl.grantUser);
 
