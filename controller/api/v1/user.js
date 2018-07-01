@@ -8,14 +8,7 @@ const path        = require('path');
 // const BBPromise = require("bluebird");
 // BBPromise.promisifyAll(redis.RedisClient.prototype);
 const _     = require('lodash');
-const Redis = require('ioredis');
-const redis = new Redis({
-  port    : 6379,          // Redis port
-  host    : 'redis',   // Redis host
-  family  : 4,           // 4 (IPv4) or 6 (IPv6)
-  password: 'admin',
-  db      : 8
-});
+const redis = require('../../../redis');
 
 module.exports = {
   makeUsers,

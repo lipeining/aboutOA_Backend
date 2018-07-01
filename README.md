@@ -22,8 +22,12 @@ by default, the mysql server should be mysql:5.7 . take a look at /config/config
 you can set your own config<br>
 for the redis service , take a look at redis.conf ,about the requirepass.the version
 should be at least 3.0.<br>
-and more, you should change the host into "localhost"!
+and more, you should change the host into "localhost", in /config/config.js and redis/index.js
 ``` bash
+// install mysql and redis by yourself！
+// just install the gm 
+apt-get update
+apt-get install graphicsmagick
 // before start the sevice, make sure you have set the config of mysql and redis 
 // create a database named aboutoa, use the followed sql.
 create database `aboutoa` default character set utf8mb4 collate utf8mb4_unicode_ci;
@@ -83,7 +87,7 @@ docker-compose up -d
 docker-compose exec mysql sh -c "mysql -uroot -padmin < /usr/local/mysql.sql"
 // wait a second 
 
-// docker-compose restart aboutoa
+docker-compose restart aboutoa
 
 ```
 #### update the aboutoa service in docker-compose

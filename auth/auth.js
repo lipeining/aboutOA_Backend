@@ -1,11 +1,4 @@
-const Redis = require('ioredis');
-const redis = new Redis({
-  port    : 6379,          // Redis port
-  host    : 'redis',   // Redis host
-  family  : 4,           // 4 (IPv4) or 6 (IPv6)
-  password: 'admin',
-  db      : 8
-});
+const redis = require('../redis');
 
 module.exports = {
   checkAdmin,
