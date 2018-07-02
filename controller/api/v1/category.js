@@ -3,6 +3,8 @@ const logService  = require('../../../services/log');
 const fse         = require('fs-extra');
 const path        = require('path');
 
+const {validationResult} = require('express-validator/check');
+
 module.exports = {
   getCategories,
   getCategory,
@@ -33,6 +35,10 @@ async function getCategories(req, res, next) {
 }
 
 async function getCategory(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let options = {
     id: parseInt(req.query.id) || 0
   };
@@ -46,6 +52,10 @@ async function getCategory(req, res, next) {
 }
 
 async function createCate(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   if (!req.body.name || !req.body.intro) {
     return res.json({code: 4, Message: {err: 'error input'}});
   } else {
@@ -121,6 +131,10 @@ async function updateCategories(req, res, next) {
 }
 
 async function delCate(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let options = {
     id: parseInt(req.body.id) || 0
   };

@@ -7,6 +7,8 @@ const path        = require('path');
 // const redis     = require("redis");
 // const BBPromise = require("bluebird");
 // BBPromise.promisifyAll(redis.RedisClient.prototype);
+const {validationResult} = require('express-validator/check');
+
 const _     = require('lodash');
 const redis = require('../../../redis');
 
@@ -25,6 +27,10 @@ module.exports = {
 };
 
 async function getUsers(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let pageIndex = parseInt(req.query.pageIndex) || 1;
   let pageSize  = parseInt(req.query.pageSize) || 10;
   let options   = {
@@ -42,6 +48,10 @@ async function getUsers(req, res, next) {
 }
 
 async function getUser(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let options = {
     id: parseInt(req.query.id) || 0
   };
@@ -68,7 +78,10 @@ async function login(req, res, next) {
   //   });
   //   await redis.set("users", JSON.stringify(users), "EX", "1800");
   // }
-
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let options = {
     password: req.body.password || '',
     email   : req.body.email || '',
@@ -130,6 +143,10 @@ async function login(req, res, next) {
 }
 
 async function reg(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   console.log(`request ip:${req.ip}`);
   console.log(`request ips:${req.ips}`);
   let ipReg    = `${req.ip}-reg`;
@@ -188,6 +205,10 @@ async function makeUsers(req, res, next) {
 }
 
 async function update(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let user = {
     id   : parseInt(req.body.id) || 0,
     phone: parseInt(req.body.phone) || 0,
@@ -210,6 +231,10 @@ async function update(req, res, next) {
 }
 
 async function grantUser(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let options = {
     id        : parseInt(req.body.id) || 0,
     permission: parseInt(req.body.permission) || 0
@@ -239,6 +264,10 @@ async function grantUser(req, res, next) {
 }
 
 async function delUser(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let options = {
     id: parseInt(req.body.id) || 0
   };

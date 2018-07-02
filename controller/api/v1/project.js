@@ -7,6 +7,8 @@ const path       = require('path');
 const fse        = require('fs-extra');
 const gm         = require('gm');
 
+const {validationResult} = require('express-validator/check');
+
 module.exports = {
   getProjects,
   getProject,
@@ -25,6 +27,10 @@ async function getProjects(req, res, next) {
   //   pageIndex: pageIndex,
   //   pageSize : pageSize
   // };
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let options = {
     categoryId: parseInt(req.query.categoryId) || 0
   };
@@ -51,6 +57,10 @@ async function getProject(req, res, next) {
 }
 
 async function createPro(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let newPro = {
     name      : req.body.name || '',
     intro     : req.body.intro || '',
@@ -148,6 +158,10 @@ async function updateProjects(req, res, next) {
 }
 
 async function delPro(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let project = {
     id: parseInt(req.body.id) || 0
   };

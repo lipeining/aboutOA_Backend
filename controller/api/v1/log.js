@@ -1,10 +1,16 @@
 const logService = require('../../../services/log');
 
+const {validationResult} = require('express-validator/check');
+
 module.exports = {
   getLogs
 };
 
 async function getLogs(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({Message: {err: errors.array()}, code: 4});
+  }
   let pageIndex = parseInt(req.query.pageIndex) || 1;
   let pageSize  = parseInt(req.query.pageSize) || 10;
   let options   = {
