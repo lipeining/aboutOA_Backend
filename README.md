@@ -47,7 +47,7 @@ you should update the aboutoa service in the docker-compose.<br>
 #### create an image with node-8 and gm software.
 ``` bash
 docker pull node:8
-docker run  -d --name node-8-gm-test node:8
+docker run -it -d --name node-8-gm-test node:8
 docker container exec -it node-8-gm-test bash
 // now we are in the docker container node-8-gm-test
 // just install the gm 
@@ -90,6 +90,15 @@ docker-compose exec mysql sh -c "mysql -uroot -padmin < /usr/local/mysql.sql"
 docker-compose restart aboutoa
 
 ```
+
+#### create test users
+```
+// use the API api/v1/makeUsers to generate some test users 
+// for example 
+GET http://localhost:3000/api/v1/makeUsers?code=112358wow&num=1000
+// and then, you'd better close the API in routes/users.js
+```
+
 #### update the aboutoa service in docker-compose
 ``` bash
 // just after set up the project with docker-compose, maybe you would get the error like this

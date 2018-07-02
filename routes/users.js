@@ -19,7 +19,7 @@ router.get('/users', auth.checkLogin, auth.checkAdmin,
   }), userCtrl.getUsers);
 
 /* GET users listing. */
-// router.get('/makeUsers', auth.checkLogin, auth.checkAdmin, userCtrl.makeUsers);
+// router.get('/makeUsers', auth.checkLogin, userCtrl.makeUsers);
 
 /* GET user  */
 router.get('/user', auth.checkLogin, auth.checkAdmin,

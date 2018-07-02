@@ -2,7 +2,7 @@ version: '3'
 
 services:
   aboutoa:
-    image: "node-8-gm:1.0"
+    image: "node:8"
     working_dir: /home/node/app
     depends_on:
       - mysql
@@ -38,7 +38,7 @@ services:
     expose:
       - "3306"
     volumes:
-     - /home/said/aboutOA/datadir:/var/lib/mysql
+     - /home/duoyi/aboutOA/datadir:/var/lib/mysql
      - ./mysql.sql:/usr/local/mysql.sql
     environment:
       - MYSQL_ROOT_PASSWORD=admin
