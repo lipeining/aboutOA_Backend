@@ -25,12 +25,12 @@ const redis = require('../../../redis');
 // });
 
 const Scheduler = require('redis-scheduler');
-var scheduler   = new Scheduler({
-  host    : 'redis',
-  port    : 6379,
-  password: 'admin',
-  db      : 8
-});
+// var scheduler   = new Scheduler({
+//   host    : 'redis',
+//   port    : 6379,
+//   password: 'admin',
+//   db      : 8
+// });
 
 // define the session destroyed event handler to the scheduler!
 async function sessionDestroyedHandler(err, key) {
@@ -299,25 +299,26 @@ async function login(req, res, next) {
           fse.remove(req.session.captchaPath);
           req.session.captchaToken = null;
           req.session.captchaPath  = null;
-
+          // 手动save，以便socket.io中可以得知user的信息.
+          req.session.save();
           // await redis.set('keyword', JSON.stringify(user));
           // just schedule the req.session.id
           // set a keyword about ${id}:${name}:${sessionId}
           // and the keyword would be later than the sess:-${req.session.id}
           let keyword = `${user.id}:${user.name}:${req.session.id}`;
-          scheduler.schedule({
-            key    : keyword,
-            // key    : `sess:${req.session.id}`,
-            expire : 6000000, // should be equal to express-session-cookie-maxAge!
-            // expire : 30000, // should be equal to express-session-cookie-maxAge!
-            handler: sessionDestroyedHandler
-          }, function (err) {
-            if (err) {
-              console.error(err);
-            } else {
-              console.log('scheduled successfully!');
-            }
-          });
+          // scheduler.schedule({
+          //   key    : keyword,
+          //   // key    : `sess:${req.session.id}`,
+          //   expire : 6000000, // should be equal to express-session-cookie-maxAge!
+          //   // expire : 30000, // should be equal to express-session-cookie-maxAge!
+          //   handler: sessionDestroyedHandler
+          // }, function (err) {
+          //   if (err) {
+          //     console.error(err);
+          //   } else {
+          //     console.log('scheduled successfully!');
+          //   }
+          // });
           // Add a handler for req.session.id
           // scheduler.addHandler({
           //   key    : `keyword`,
@@ -346,42 +347,42 @@ async function login(req, res, next) {
             // socketId : ''
             // agree : false/true which need the login client to agree
           };
-
-          let userRedisList = await redis.lrange(`${user.id}-${user.name}-login`, 0, -1) || [];
-          // console.log(`userRedisList`);
-          // console.log(userRedisList);
-          if (userRedisList.length !== 0) {
-            // send message to the login client
-            for (let i = 0; i < userRedisList.length; i++) {
-              let emitUser = JSON.parse(userRedisList[i]);
-              // should we check the session?
-              if (res.io.sockets.connected[emitUser['socketId']] && emitUser['agree']) {
-                res.io.sockets.connected[emitUser['socketId']].emit('diffLogin', {
-                  user: user, ip: req.ip, sessionId: req.session.id
-                });
-              }
-            }
-            // for the current user.just return need agree
-            loginUser['agree'] = false;
-            await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
-            await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
-            // should we expire the list timeout? with reschedule it's useless now!
-            // await redis.expire(`${user.id}-${user.name}-login`, 3600);
-            return res.json({
-              Message: {
-                err: {
-                  sessionId: req.session.id,
-                  diffUser : {id: user.id, name: user.name}
-                }
-              }, code: 4
-            });
-          } else {
-            loginUser['agree'] = true;
-            await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
-            // await redis.expire(`${user.id}-${user.name}-login`, 3600);
-            await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
-            return res.json({Message: {user: user, sessionId: req.session.id}, code: 0});
-          }
+          return res.json({Message: {user: user, sessionId: req.session.id}, code: 0});
+          // let userRedisList = await redis.lrange(`${user.id}-${user.name}-login`, 0, -1) || [];
+          // // console.log(`userRedisList`);
+          // // console.log(userRedisList);
+          // if (userRedisList.length !== 0) {
+          //   // send message to the login client
+          //   for (let i = 0; i < userRedisList.length; i++) {
+          //     let emitUser = JSON.parse(userRedisList[i]);
+          //     // should we check the session?
+          //     if (res.io.sockets.connected[emitUser['socketId']] && emitUser['agree']) {
+          //       res.io.sockets.connected[emitUser['socketId']].emit('diffLogin', {
+          //         user: user, ip: req.ip, sessionId: req.session.id
+          //       });
+          //     }
+          //   }
+          //   // for the current user.just return need agree
+          //   loginUser['agree'] = false;
+          //   await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
+          //   await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
+          //   // should we expire the list timeout? with reschedule it's useless now!
+          //   // await redis.expire(`${user.id}-${user.name}-login`, 3600);
+          //   return res.json({
+          //     Message: {
+          //       err: {
+          //         sessionId: req.session.id,
+          //         diffUser : {id: user.id, name: user.name}
+          //       }
+          //     }, code: 4
+          //   });
+          // } else {
+          //   loginUser['agree'] = true;
+          //   await redis.lpush(`${user.id}-${user.name}-login`, JSON.stringify(loginUser));
+          //   // await redis.expire(`${user.id}-${user.name}-login`, 3600);
+          //   await redis.set(`${user.id}-${user.name}-userInfo`, JSON.stringify(user), 'EX', 3600);
+          //   return res.json({Message: {user: user, sessionId: req.session.id}, code: 0});
+          // }
         } else {
           // wrong password should count++ ,check if >= 5?
 

@@ -5,6 +5,31 @@ const userCtrl = require('../controller/api/v1/user');
 
 const {oneOf, check, checkSchema} = require('express-validator/check');
 
+// router.get('/kickuser', auth.checkLogin, function(req, res, next) {
+//   // res.render('index', { title: 'Express' });
+//   let options = {
+//     userId: parseInt(req.query.userId)||0,
+//     status: parseInt(req.session.status)||0
+//   };
+//   let kickUserSocket = userMapSocket[options.userId]||{};
+//   let kickUserSessionID = socketMapSession[kickUserSocket.id] || '';
+//   res.store.get(kickUserSessionID, function(err, session){
+//     if(err){
+//       console.log('get kick user session error'+ err);
+//     }else{
+//       console.log('get kick uesr session success');
+//       session.user.state = options.status;
+//       session.save();
+//     }
+//   });
+//   kickUserSocket.emit('kickuser', {
+//     admin: req.session.user
+//   });
+//   userMapSocket[req.session.user.id].emit('kickoutuser', 'success');
+//   return res.json({code: 0, msg: 'success'});
+//   // res.render('index');
+// });
+
 /* GET users listing. */
 router.get('/users', auth.checkLogin, auth.checkAdmin,
   checkSchema({

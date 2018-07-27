@@ -28,14 +28,16 @@ var store      = new RedisStore({
   pass: 'admin',
   db  : 8
 });
-
-app.use(session({
+var sessionMiddleware = session({
   store : store,
   secret: 'about_oa',
   resave: false,
+  saveUninitialized: false,
   cookie: {maxAge: 6000000}//100 min
   // cookie: {maxAge: 30000}//10 min test for session reschedule!
-}));
+});
+
+app.use(sessionMiddleware);
 
 // app.use(session({
 //   secret           : 'about_oa',
@@ -63,92 +65,88 @@ app.use(express.static(path.join(__dirname, 'dist')));
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
+// var socketIORouter = require("./handler/SocketIORouter");
+// var padMessageHandler = require("./handler/PadMessageHandler");
+// var hooks = require("ep_etherpad-lite/static/js/pluginfw/hooks");
+// var webaccess = require("ep_etherpad-lite/node/hooks/express/webaccess");
 /**
  * Create HTTP server.
  */
-
+var util = require('util');
+var async = require('async');
+var DB = require('./db/DB2').init();
 var server = require('http').Server(app);
 var io     = require('socket.io')(server);
 
-var adminNamespace = io.of('/admin');
+var sharedsession = require("express-socket.io-session");
 
-// const handleIO = require('./socket');
-
-// const Redis = require('ioredis');
-// const redis = new Redis({
-//   port    : 6379,          // Redis port
-//   host    : 'redis',   // Redis host
-//   family  : 4,           // 4 (IPv4) or 6 (IPv6)
-//   password: 'admin',
-//   db      : 8
+/* Require an express session cookie to be present, and load the
+ * session. See http://www.danielbaulig.de/socket-ioexpress for more
+ * info */
+// var cookieParserFn = cookieParser(webaccess.secret, {});
+// io.use(function(socket, next) {
+//   sessionMiddleware(socket.request, socket.request.res, next);
 // });
-const redis = require('./redis');
 
+
+// Share session with io sockets
+ 
+io.use(sharedsession(sessionMiddleware));
+
+io.use(function(socket, accept) {
+  var data = socket.request;
+  console.log(socket.handshake.session);
+  accept(null, true);
+});
+
+//Initalize the Socket.IO Router
+// socketIORouter.setSocketIO(io);
+// socketIORouter.addComponent("pad", padMessageHandler);
+
+const redis = require('./redis');
+const map = require('./map');
+const news = require('./controller/socket/newsPush');
 io.on('connection', async function handleConnection(socket) {
   // handle the connection and socket event in here
   console.log('a new connection:');
   console.log(socket.id);
+  // sessionInfo[socket.id] = {
+  //   clientId: socket.id,
+  //   baseRev:0
+  // };
+  let session = socket.handshake.session;
+  if(session && session.user){
+    map.userMapSocket[session.user.id]= socket;
+    map.socketMapSession[socket.id] = session.id;
+  }
+  console.log(session);
+  // log the userMapSocket and socketMapSession
+  console.log('userMapSocket');
+  console.log(map.userMapSocket);
+  console.log('socketMapSession');
+  console.log(map.socketMapSession);
 
-  socket.on('login', async function (data) {
-    // store in the `${user.id}-${user.name}-login`
-
-    let id        = data.id;
-    let name      = data.name;
-    let sessionId = data.sessionId;
-    console.log(`client emit login with data {id, name, sessionId}:${id}-${name}-${sessionId}`);
-    let userList = await redis.lrange(`${id}-${name}-login`, 0, -1) || [];
-    for (let i = 0; i < userList.length; i++) {
-      let user = JSON.parse(userList[i]) || {};
-      if (user['sessionId'] === sessionId) {
-        console.log(`client emit login find the session `);
-        user.socketId = socket.id;
-        await redis.lset(`${id}-${name}-login`, i, JSON.stringify(user));
-        break;
-      }
-    }
-    console.log(`client emit login end !`);
-    // here we can ltrim to limit login user!
-    // just hold two login user!
-    // await redis.ltrim(`${id}-${name}-login`, -2, -1);
+  socket.on('news', function(data){
+    let msg = {
+      who: session.user.id,
+      what: data,
+      result: 'server has seen.'
+    };
+    news.newsPush('news', session.user.id, msg);
   });
 
-  socket.on('agreeLogin', async function (data) {
-    // update in the `${user.id}-${user.name}-login`
-    console.log('client emit agreeLogin with data {id, name, sessionId}');
-    let id        = data.id;
-    let name      = data.name;
-    let sessionId = data.sessionId;
-    let agree     = data.agree;
-    let userList  = await redis.lrange(`${id}-${name}-login`, 0, -1) || [];
-    for (let i = 0; i < userList.length; i++) {
-      let user = JSON.parse(userList[i]) || {};
-      if (user['sessionId'] === sessionId) {
-        console.log(user);
-        console.log(user.agree);
-        if (agree) {
-          user.agree = true;
-          await redis.lset(`${id}-${name}-login`, i, JSON.stringify(user));
-          // tell the waiting user
-          let userInfo = await redis.get(`${id}-${name}-userInfo`);
-          io.sockets.connected[user.socketId].emit('agree', {agree: true, user: JSON.parse(userInfo) || {}});
-        } else {
-          user.agree = false;
-          let rem = await redis.lrem(`${id}-${name}-login`, 0, JSON.stringify(user));
-          console.log(`socket agree find the user index in the list rem return count:${rem}`);
-          // delete the session
-          store.destroy(user['sessionId'], function (err) {
-            if (err) {
-              console.log('agree login destroy session error');
-              console.log(err);
-            } else {
-              console.log('agree login destroy session done');
-            }
-          });
-          // tell the waiting user
-          io.sockets.connected[user.socketId].emit('agree', {agree: false, user: {}});
-        }
-        break;
-      }
+  socket.on('message', function (data){
+    console.log('on message');
+    console.log(session);
+    console.log(data);
+
+    // socket.emit('message', JSON.stringify(data.data.text));
+    if(data.type === 'COLLABROOM'){
+      handleUserChange();
+    }else if(data.type==="CLIENT_READY"){
+      
+    }else {
+
     }
   });
 });
@@ -156,16 +154,44 @@ io.on('connection', async function handleConnection(socket) {
 app.use(function (req, res, next) {
   res.store          = store;
   res.io             = io;
-  res.adminNamespace = adminNamespace;
   next();
 });
 
 app.use('/', indexRouter);
-// app.use('/api/v1/', auth.checkFrequency, usersRouter);
+app.get('/api/v1/kickuser', function(req, res, next) {
+  // res.render('index', { title: 'Express' });
+  let options = {
+    userId: parseInt(req.query.userId)||0,
+    status: parseInt(req.query.status)||0
+  };
+  let kickUserSocket = map.userMapSocket[options.userId]||{};
+  let kickUserSessionID = map.socketMapSession[kickUserSocket.id] || '';
+  console.log('req.session');
+  console.log(req.session.user);
+  res.store.get(kickUserSessionID, function(err, session){
+    if(err){
+      console.log('get kick user session error'+ err);
+    }else{
+      console.log('get kick uesr session success');
+      session.user.state = options.status;
+      console.log(session);
+      // session.save();// 没有save function
+      res.store.set(kickUserSessionID, session);
+    }
+  });
+  kickUserSocket.emit('kickuser', {
+    admin: req.session.user
+  });
+  map.userMapSocket[req.session.user.id].emit('kickoutuser', 'success');
+  return res.json({code: 0, msg: 'success'});
+  // res.render('index');
+});
 app.use('/api/v1/', usersRouter);
-app.use('/api/v1/', logsRouter);
-app.use('/api/v1/', categoriesRouter);
-app.use('/api/v1/', projectsRouter);
+/*  kick user . */
+// app.use('/api/v1/', usersRouter);
+// app.use('/api/v1/', logsRouter);
+// app.use('/api/v1/', categoriesRouter);
+// app.use('/api/v1/', projectsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -199,12 +225,26 @@ function modelAssociate() {
  * Listen on provided port, on all network interfaces.
  */
 function start() {
+  // console.log(DB);
+  // async.waterfall([
+  //   //initalize the database
+  //   function (callback)
+  //   {
+  //     DB.init(callback);
+  //   },
+  // ]);
   db.sequelize.sync()
     .then(function () {
       modelAssociate();
       console.log('does it associate?');
     })
     .then(function () {
+      // console.log(DB);
+      // DB.then(function(db){
+      //   db.get("pad:aaa", function(err, pad){
+      //     console.log('in app setup :' + util.inspect(pad));
+      //   });
+      // });
       console.log('server start on localhost:' + port);
       server.listen(port);
       server.on('error', onError);
